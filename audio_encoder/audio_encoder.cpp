@@ -91,7 +91,7 @@ static AudioSampleRate ConvertSampleRate(uint32_t sampleRate)
         case AUD_SAMPLE_RATE_24000:
             return AUD_SAMPLE_RATE_24000;
         case AUD_SAMPLE_RATE_32000:
-            return AUD_SAMPLE_RATE_24000;
+            return AUD_SAMPLE_RATE_32000;
         case AUD_SAMPLE_RATE_44100:
             return AUD_SAMPLE_RATE_44100;
         case AUD_SAMPLE_RATE_48000:
