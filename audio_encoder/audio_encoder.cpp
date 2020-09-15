@@ -79,27 +79,17 @@ static AudioSampleRate ConvertSampleRate(uint32_t sampleRate)
 {
     switch (sampleRate) {
         case AUD_SAMPLE_RATE_8000:
-            return AUD_SAMPLE_RATE_8000;
         case AUD_SAMPLE_RATE_11025:
-            return AUD_SAMPLE_RATE_11025;
         case AUD_SAMPLE_RATE_12000:
-            return AUD_SAMPLE_RATE_12000;
         case AUD_SAMPLE_RATE_16000:
-            return AUD_SAMPLE_RATE_16000;
         case AUD_SAMPLE_RATE_22050:
-            return AUD_SAMPLE_RATE_22050;
         case AUD_SAMPLE_RATE_24000:
-            return AUD_SAMPLE_RATE_24000;
         case AUD_SAMPLE_RATE_32000:
-            return AUD_SAMPLE_RATE_32000;
         case AUD_SAMPLE_RATE_44100:
-            return AUD_SAMPLE_RATE_44100;
         case AUD_SAMPLE_RATE_48000:
-            return AUD_SAMPLE_RATE_48000;
         case AUD_SAMPLE_RATE_64000:
-            return AUD_SAMPLE_RATE_64000;
         case AUD_SAMPLE_RATE_96000:
-            return AUD_SAMPLE_RATE_96000;
+            return static_cast<AudioSampleRate>(sampleRate);
         default:
             MEDIA_ERR_LOG("Invalid sample_rate: %d", sampleRate);
             return AUD_SAMPLE_RATE_48000;
