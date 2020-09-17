@@ -18,20 +18,21 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <time.h>
 #include <memory>
+#include <time.h>
 #include <vector>
 
+#include "audio_manager.h"
+#include "format.h"
 #include "media_errors.h"
 #include "media_info.h"
-#include "format.h"
-#include "audio_manager.h"
 
 namespace OHOS {
 namespace Audio {
 struct AudioSourceConfig {
     /**
-     * 根据EnumDeviceBySourceType 枚举到的设备，选择设置当前audio source 要使用的设备.
+     * Enumerates currently supported devices by audio source type,
+     * and binds current audio source a specified device.
      */
     uint32_t deviceId;
     AudioCodecFormat audioFormat;
@@ -48,7 +49,11 @@ public:
     ~AudioSource();
 
     /**
-     * 根据输入源类型枚举当前支持的设备，包括设备名和设备ID.
+     * Enumerates currently supported devices by audio source type.
+     *
+     * @param inputSource the type of source audio.
+     * @param devices holds an array of statisfied audio device description, including name and identity.
+     * @return Returns SUCCESS if success, other values otherwise.
      */
     int32_t EnumDeviceBySourceType(AudioSourceType inputSource, std::vector<AudioDeviceDesc> &devices);
 
@@ -72,32 +77,51 @@ public:
     uint64_t GetFrameCount();
 
     /**
-     * 根据AudioSourceConfig 初始化当前source.
+     * Initailizes the audio source according to a specific configuration.
+     *
+     * @param config a configuration of audio source.
+     * @return Returns SUCCESS if success, other values otherwise.
      */
-    int32_t Initialize(const AudioSourceConfig &input);
+    int32_t Initialize(const AudioSourceConfig &config);
 
     /**
-    * 设置设备ID，需要切换设备时调用.
+    * Sets input device's identity when switching device.
+    *
+    * @param deviceId indentity to set.
+    * @return Returns SUCCESS if set successfully, other values otherwise.
     */
     int32_t SetInputDevice(uint32_t deviceId);
 
     /**
-     * 获取当前的设备ID.
+     * Gets current device's identity.
+     * 
+     * @param deviceId holds the identity of current device, if success.
+     * @return Returns SUCCESS if success, other values otherwise.
      */
     int32_t GetCurrentDeviceId(uint32_t &deviceId);
 
     /**
-    * 启动源.
+    * Starts audio source.
+    *
+    * @return Returns SUCCESS if success, other values otherwise.
     */
     int32_t Start();
 
     /**
-    * 读取源数据，返回实际读取大小.
+    * 
+    * Reads frame from source.
+    *
+    * @param buffer source to read from.
+    * @param bufferBytes size of buffer.
+    * @param isBlockingRead reading mode.
+    * @return Returns size of data actually read.
     */
     int32_t ReadFrame(uint8_t *buffer, size_t bufferBytes, bool isBlockingRead);
 
     /**
-    * 停止源.
+    * Stops audio source.
+    * 
+    * @return Returns SUCCESS if success, other values otherwise.
     */
     int32_t Stop();
 

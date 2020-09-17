@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include "audio_source.h"
 #include "media_log.h"
 #include "securec.h"
@@ -28,6 +29,7 @@ namespace Audio {
 
 using namespace OHOS::Media;
 static AudioManager *g_audioManager = nullptr;
+
 AudioSource::AudioSource()
     : initialized_(false),
       started_(false),
@@ -119,19 +121,19 @@ int32_t AudioSource::EnumDeviceBySourceType(AudioSourceType inputSource, std::ve
     return SUCCESS;
 }
 
-int32_t AudioSource::Initialize(const AudioSourceConfig &input)
+int32_t AudioSource::Initialize(const AudioSourceConfig &config)
 {
     AUDIO_RETURN_VAL_IF_NULL(audioAdapter_);
 
-    MEDIA_INFO_LOG("deviceId:0x%x input.sampleRate:%d", input.deviceId, input.sampleRate);
+    MEDIA_INFO_LOG("config.deviceId:0x%x config.sampleRate:%d", config.deviceId, config.sampleRate);
     int32_t ret = SUCCESS;
     struct AudioDeviceDescriptor desc;
     struct AudioSampleAttributes attrs;
     attrs.type = AUDIO_IN_MEDIA;
-    attrs.sampleRate = input.sampleRate;
+    attrs.sampleRate = config.sampleRate;
     attrs.format = AUDIO_FORMAT_PCM_16_BIT;
-    attrs.channelCount = input.channelCount;
-    attrs.interleaved = input.interleaved;
+    attrs.channelCount = config.channelCount;
+    attrs.interleaved = config.interleaved;
     ret = audioAdapter_->CreateCapture(audioAdapter_, &desc, &attrs, &audioCapture_);
     if (ret != SUCCESS || audioCapture_ == nullptr) {
         MEDIA_ERR_LOG("CreateCapture failed 0x%x", ret);

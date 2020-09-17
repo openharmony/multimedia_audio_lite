@@ -12,9 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include "audio_capturer_impl.h"
+
 #include <sys/select.h>
-/* include */
+
 #include "audio_source.h"
 #include "audio_encoder.h"
 #include "media_log.h"
@@ -24,8 +26,8 @@ namespace Audio {
 
 using namespace OHOS::Media;
 
-const unsigned long long TIME_CONVERSION_US_S = 1000000ULL;  /* ¦Ìs to s */
-const unsigned long long TIME_CONVERSION_NS_US = 1000ULL;  /* ns  to ¦Ìs  */
+const unsigned long long TIME_CONVERSION_US_S = 1000000ULL;  /* us to s */
+const unsigned long long TIME_CONVERSION_NS_US = 1000ULL;  /* ns to us */
 
 
 AudioCapturer::AudioCapturerImpl::AudioCapturerImpl()
