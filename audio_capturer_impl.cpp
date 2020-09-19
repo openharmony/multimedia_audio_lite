@@ -69,10 +69,10 @@ int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInf
     std::vector<AudioDeviceDesc> devices;
     ret = audioSource_->EnumDeviceBySourceType(info.inputSource, devices);
     if (ret != SUCCESS || devices.empty()) {
-        MEDIA_ERR_LOG("EnumDeviceBySourceType failed  inputSource:%d", info.inputSource);
+        MEDIA_ERR_LOG("EnumDeviceBySourceType failed inputSource:%d", info.inputSource);
         return ret;
     }
-    MEDIA_INFO_LOG("info.sampleRate %d", info.sampleRate);
+    MEDIA_INFO_LOG("info.sampleRate:%d", info.sampleRate);
     AudioSourceConfig sourceConfig;
     sourceConfig.deviceId = devices[0].deviceId;
     sourceConfig.audioFormat = info.audioFormat;
@@ -83,7 +83,7 @@ int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInf
     sourceConfig.streamUsage = TYPE_DEFAULT;
     ret = audioSource_->Initialize(sourceConfig);
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("Initialize failed  inputSource:%d", info.inputSource);
+        MEDIA_ERR_LOG("Initialize failed inputSource:%d", info.inputSource);
         return ret;
     }
     AudioEncodeConfig encodeConfig;
@@ -92,10 +92,10 @@ int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInf
     encodeConfig.sampleRate = info.sampleRate;
     encodeConfig.channelCount = info.channelCount;
     encodeConfig.bitWidth = info.bitWidth;
-    MEDIA_INFO_LOG("audioEncoder_ info.bitRate %d ", info.bitRate);
+    MEDIA_INFO_LOG("audioEncoder_ info.bitRate:%d", info.bitRate);
     ret = audioEncoder_->Initialize(encodeConfig);
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("Initialize failed  inputSource:%d", info.inputSource);
+        MEDIA_ERR_LOG("Initialize failed inputSource:%d", info.inputSource);
         return ret;
     }
     info_ = info;
@@ -115,7 +115,7 @@ bool AudioCapturer::AudioCapturerImpl::Record()
 {
     if (status != PREPARED &&
         status != STOPPED) {
-        MEDIA_ERR_LOG("Record ILLEGAL_STATE  status:%u", status);
+        MEDIA_ERR_LOG("Record ILLEGAL_STATE status:%u", status);
         return ERR_ILLEGAL_STATE;
     }
     int32_t ret = audioSource_->Start();
@@ -148,11 +148,11 @@ bool AudioCapturer::AudioCapturerImpl::Record()
 int32_t AudioCapturer::AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize, bool isBlockingRead)
 {
     if (buffer == NULL || userSize == 0) {
-        MEDIA_ERR_LOG("Invalid buffer %p userSize:%u", buffer, userSize);
+        MEDIA_ERR_LOG("Invalid buffer:%p userSize:%u", buffer, userSize);
         return ERR_INVALID_READ;
     }
     if (status != RECORDING) {
-        MEDIA_ERR_LOG("ILLEGAL_STATE  status:%u", status);
+        MEDIA_ERR_LOG("ILLEGAL_STATE status:%u", status);
         return ERR_INVALID_READ;
     }
     AudioStream stream;
@@ -160,7 +160,7 @@ int32_t AudioCapturer::AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize,
     stream.bufferLen = userSize;
     int32_t readLen = audioEncoder_->ReadStream(stream, isBlockingRead);
     if (readLen == ERR_INVALID_READ) {
-        MEDIA_ERR_LOG("audioEncoder_ ReadStream fail,ret:0x%x", readLen);
+        MEDIA_ERR_LOG("audioEncoder_ ReadStream failed:0x%x", readLen);
         return ERR_INVALID_READ;
     }
     timestamp_.time.tv_sec = static_cast<time_t>(stream.timeStamp / TIME_CONVERSION_US_S); // us - s
@@ -172,19 +172,19 @@ int32_t AudioCapturer::AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize,
 bool AudioCapturer::AudioCapturerImpl::Stop()
 {
     if (status != RECORDING) {
-        MEDIA_ERR_LOG("ILLEGAL_STATE  status:%u", status);
+        MEDIA_ERR_LOG("ILLEGAL_STATE status:%u", status);
         return ERR_ILLEGAL_STATE;
     }
     MEDIA_INFO_LOG("audioEncoder Stop");
     int32_t ret = audioEncoder_->Stop();
     if (ret != SUCCESS) {
-        MEDIA_DEBUG_LOG("audioEncoder_ stop fail,ret:0x%x", ret);
+        MEDIA_DEBUG_LOG("audioEncoder_ stop failed:0x%x", ret);
         return false;
     }
     MEDIA_INFO_LOG("audioSource Stop");
     ret = audioSource_->Stop();
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("audioSource_ stop fail,ret:0x%x", ret);
+        MEDIA_ERR_LOG("audioSource_ stop failed:0x%x", ret);
         return false;
     }
     MEDIA_INFO_LOG("Stop Audio Capturer SUCCESS");
@@ -199,7 +199,7 @@ bool AudioCapturer::AudioCapturerImpl::Release()
         return false;
     }
     if (status == RECORDING && Stop()) {
-        MEDIA_ERR_LOG("Stop  failed: %u", status);
+        MEDIA_ERR_LOG("Stop failed:%u", status);
         return false;
     }
     status = RELEASED;

@@ -50,7 +50,7 @@ AudioEncoder::~AudioEncoder()
 static bool IsAudioCodecFormatSupported(AudioCodecFormat format)
 {
     if ((format < AAC_LC) || (format > AAC_ELD)) {
-        MEDIA_ERR_LOG("Invalid format: %d", format);
+        MEDIA_ERR_LOG("Invalid format:%d", format);
         return false;
     }
     return true;
@@ -70,7 +70,7 @@ static Profile GetProfileFromAudioCodecFormat(AudioCodecFormat format)
         case AAC_ELD:
             return AAC_ELD_PROFILE;
         default:
-            MEDIA_ERR_LOG("Invalid format: 0x%x", format);
+            MEDIA_ERR_LOG("Invalid format:0x%x", format);
             return AAC_LC_PROFILE;
     }
 }
@@ -91,7 +91,7 @@ static AudioSampleRate ConvertSampleRate(uint32_t sampleRate)
         case AUD_SAMPLE_RATE_96000:
             return static_cast<AudioSampleRate>(sampleRate);
         default:
-            MEDIA_ERR_LOG("Invalid sample_rate: %d", sampleRate);
+            MEDIA_ERR_LOG("Invalid sample_rate:%d", sampleRate);
             return AUD_SAMPLE_RATE_48000;
     }
 }
@@ -104,7 +104,7 @@ static AudioSoundMode ConvertSoundMode(uint32_t channelCount)
         case AUDIO_CHANNEL_STEREO:
             return AUD_SOUND_MODE_STEREO;
         default:
-            MEDIA_ERR_LOG("Invalid soundMode: %d", channelCount);
+            MEDIA_ERR_LOG("Invalid soundMode:%d", channelCount);
             return AUD_SOUND_MODE_MONO;
     }
 }
@@ -112,7 +112,7 @@ static AudioSoundMode ConvertSoundMode(uint32_t channelCount)
 int32_t AudioEncoder::InitAudioEncoderAttr(const AudioEncodeConfig &config)
 {
     if (!IsAudioCodecFormatSupported(config.audioFormat)) {
-        MEDIA_ERR_LOG("config.audioFormat :0x%x is not support", config.audioFormat);
+        MEDIA_ERR_LOG("config.audioFormat:0x%x is not support", config.audioFormat);
         return ERR_INVALID_PARAM;
     }
     uint32_t paramIndex = 0;
@@ -168,7 +168,7 @@ int32_t AudioEncoder::Initialize(const AudioEncodeConfig &config)
     const char *audioEncName = "codec.aac.hardware.encoder";
     ret = CodecCreate(audioEncName, encAttr_, AUDIO_ENC_PARAM_NUM, &encHandle_);
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("CodecCreate failed :0x%x", ret);
+        MEDIA_ERR_LOG("CodecCreate failed:0x%x", ret);
         return ret;
     }
     return SUCCESS;
@@ -184,7 +184,7 @@ int32_t AudioEncoder::BindSource(uint32_t deviceId)
     params[0].size = sizeof(uint32_t);
     ret = CodecSetParameter(encHandle_, params, sizeof(params) / sizeof(params[0]));
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("CodecSetDevice :0x%x", ret);
+        MEDIA_ERR_LOG("CodecSetDevice failed:0x%x", ret);
         return ret;
     }
     return SUCCESS;
@@ -219,7 +219,7 @@ int32_t AudioEncoder::ReadStream(AudioStream &stream, bool isBlockingRead)
         return ERR_INVALID_READ;
     }
     if (stream.buffer == nullptr || stream.bufferLen == 0) {
-        MEDIA_ERR_LOG("stream.buffer is  nullptr");
+        MEDIA_ERR_LOG("stream.buffer is nullptr");
         return ERR_INVALID_READ;
     }
     uint32_t timeoutMs;
@@ -241,7 +241,7 @@ int32_t AudioEncoder::ReadStream(AudioStream &stream, bool isBlockingRead)
     errno_t retCopy = memcpy_s(stream.buffer, stream.bufferLen, outInfo.buffers[0].addr,
                                outInfo.buffers[0].length);
     if (retCopy != EOK) {
-        MEDIA_ERR_LOG("memcpy_s encData.encodedData %p timeStamp:%lld failed :0x%x",
+        MEDIA_ERR_LOG("memcpy_s encData.encodedData:%p timeStamp:%lld failed:0x%x",
                       outInfo.buffers[0].addr, outInfo.timeStamp, retCopy);
         return ERR_INVALID_OPERATION;
     } else {
