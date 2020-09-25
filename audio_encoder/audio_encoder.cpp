@@ -91,7 +91,7 @@ static AudioSampleRate ConvertSampleRate(uint32_t sampleRate)
         case AUD_SAMPLE_RATE_96000:
             return static_cast<AudioSampleRate>(sampleRate);
         default:
-            MEDIA_ERR_LOG("Invalid sample_rate:%d", sampleRate);
+            MEDIA_ERR_LOG("Invalid sample_rate:%u", sampleRate);
             return AUD_SAMPLE_RATE_48000;
     }
 }
@@ -104,7 +104,7 @@ static AudioSoundMode ConvertSoundMode(uint32_t channelCount)
         case AUDIO_CHANNEL_STEREO:
             return AUD_SOUND_MODE_STEREO;
         default:
-            MEDIA_ERR_LOG("Invalid soundMode:%d", channelCount);
+            MEDIA_ERR_LOG("Invalid soundMode:%u", channelCount);
             return AUD_SOUND_MODE_MONO;
     }
 }
