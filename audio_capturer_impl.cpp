@@ -52,7 +52,7 @@ uint64_t AudioCapturer::AudioCapturerImpl::GetFrameCount()
     return audioSource_->GetFrameCount();
 }
 
-State AudioCapturer::AudioCapturer::AudioCapturerImpl::GetStatus()
+State AudioCapturer::AudioCapturerImpl::GetStatus()
 {
     return status;
 }
