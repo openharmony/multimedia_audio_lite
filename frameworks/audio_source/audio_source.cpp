@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Huawei Device Co., Ltd.
+ * Copyright (c) 2020-2021 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "audio_source.h"
 #include "media_log.h"
 #include "securec.h"
@@ -29,7 +28,6 @@ namespace Audio {
 
 using namespace OHOS::Media;
 static AudioManager *g_audioManager = nullptr;
-
 AudioSource::AudioSource()
     : initialized_(false),
       started_(false),
@@ -38,12 +36,12 @@ AudioSource::AudioSource()
 {
     if (g_audioManager == nullptr) {
         g_audioManager = GetAudioManagerFuncs();
-        MEDIA_DEBUG_LOG("g_audioManager:%p", g_audioManager);
+        MEDIA_DEBUG_LOG("g_audioManager: %p", g_audioManager);
     }
     int size = 0;
     struct AudioAdapterDescriptor *descs = nullptr;
     g_audioManager->GetAllAdapters(g_audioManager, &descs, &size);
-    MEDIA_DEBUG_LOG("GetAllAdapters size:%d", size);
+    MEDIA_DEBUG_LOG("GetAllAdapters: %d ", size);
 
     for (int index = 0; index < size; index++) {
         struct AudioAdapterDescriptor *desc = &descs[index];
@@ -64,9 +62,9 @@ AudioSource::AudioSource()
 
 AudioSource::~AudioSource()
 {
-    MEDIA_DEBUG_LOG("audioAdapter_:%p", audioAdapter_);
+    MEDIA_DEBUG_LOG("audioAdapter_ :%p", audioAdapter_);
     if (audioAdapter_ != nullptr) {
-        MEDIA_INFO_LOG("UnloadModule audioAdapter_:%p", audioAdapter_);
+        MEDIA_INFO_LOG("audioAdapter_ UnloadModule: %p", audioAdapter_);
         g_audioManager->UnloadAdapter(g_audioManager, audioAdapter_);
         audioAdapter_ = nullptr;
     }
@@ -98,7 +96,7 @@ uint64_t AudioSource::GetFrameCount()
     uint64_t frameCount = 0;
     ret = audioCapture_->attr.GetFrameCount(reinterpret_cast<AudioHandle>(audioCapture_), &frameCount);
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("attr GetFrameCount failed:0x%x", ret);
+        MEDIA_ERR_LOG("attr GetFrameCount failed 0x%x ", ret);
         return ret;
     }
     return frameCount;
@@ -121,22 +119,22 @@ int32_t AudioSource::EnumDeviceBySourceType(AudioSourceType inputSource, std::ve
     return SUCCESS;
 }
 
-int32_t AudioSource::Initialize(const AudioSourceConfig &config)
+int32_t AudioSource::Initialize(const AudioSourceConfig &input)
 {
     AUDIO_RETURN_VAL_IF_NULL(audioAdapter_);
 
-    MEDIA_INFO_LOG("config.deviceId:0x%x config.sampleRate:%d", config.deviceId, config.sampleRate);
+    MEDIA_INFO_LOG("deviceId:0x%x input.sampleRate:%d", input.deviceId, input.sampleRate);
     int32_t ret = SUCCESS;
     struct AudioDeviceDescriptor desc;
     struct AudioSampleAttributes attrs;
     attrs.type = AUDIO_IN_MEDIA;
-    attrs.sampleRate = config.sampleRate;
+    attrs.sampleRate = input.sampleRate;
     attrs.format = AUDIO_FORMAT_PCM_16_BIT;
-    attrs.channelCount = config.channelCount;
-    attrs.interleaved = config.interleaved;
+    attrs.channelCount = input.channelCount;
+    attrs.interleaved = input.interleaved;
     ret = audioAdapter_->CreateCapture(audioAdapter_, &desc, &attrs, &audioCapture_);
     if (ret != SUCCESS || audioCapture_ == nullptr) {
-        MEDIA_ERR_LOG("CreateCapture failed:0x%x", ret);
+        MEDIA_ERR_LOG("CreateCapture failed 0x%x", ret);
         return ret;
     }
     initialized_ = true;
@@ -153,7 +151,7 @@ int32_t AudioSource::GetCurrentDeviceId(uint32_t &deviceId)
     AUDIO_RETURN_VAL_IF_NULL(audioCapture_);
     int32_t ret = audioCapture_->attr.GetCurrentChannelId(reinterpret_cast<AudioHandle>(audioCapture_), &deviceId);
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("GetCurrentChannelId failed:0x%x", ret);
+        MEDIA_ERR_LOG("GetCurrentChannelId failed 0x%x", ret);
         return ret;
     }
     MEDIA_INFO_LOG("deviceId:0x%x", deviceId);
@@ -170,7 +168,7 @@ int32_t AudioSource::Start()
     AUDIO_RETURN_VAL_IF_NULL(audioCapture_);
     ret = audioCapture_->control.Start(reinterpret_cast<AudioHandle>(audioCapture_));
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("audioCapture_ Start failed:0x%x", ret);
+        MEDIA_ERR_LOG("audioCapture_ Start failed 0x%x", ret);
         return ret;
     }
     started_ = true;
@@ -197,14 +195,14 @@ int32_t AudioSource::Stop()
     AUDIO_RETURN_VAL_IF_NULL(audioCapture_);
     ret = audioCapture_->control.Stop(reinterpret_cast<AudioHandle>(audioCapture_));
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("Stop failed:0x%x", ret);
+        MEDIA_ERR_LOG("Stop failed 0x%x", ret);
         return ret;
     }
     ret = audioAdapter_->DestroyCapture(audioAdapter_, audioCapture_);
     audioCapture_ = nullptr;
     started_ = false;
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("Close failed:0x%x", ret);
+        MEDIA_ERR_LOG("Close failed 0x%x", ret);
         return ret;
     }
     return SUCCESS;

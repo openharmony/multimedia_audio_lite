@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Huawei Device Co., Ltd.
+ * Copyright (c) 2020-2021 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,21 +18,19 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <time.h>
+#include <memory>
 #include <vector>
-
-#include "codec_interface.h"
-#include "format.h"
 #include "media_errors.h"
 #include "media_info.h"
-
+#include "format.h"
+#include "codec_interface.h"
 namespace OHOS {
 namespace Audio {
-
 constexpr int32_t AUDIO_ENC_PARAM_NUM = 8;
 /* count of audio frame in Buffer */
 constexpr uint32_t AUDIO_FRAME_NUM_IN_BUF = 30;
+
 /* sample per frame for all encoder(aacplus:2048) */
 constexpr uint32_t AUDIO_AUDIO_POINT_NUM = 1024;
 
@@ -56,63 +54,42 @@ public:
     ~AudioEncoder();
 
     /**
-     * Initailizes the audio source according to a specific configuration.
-     *
-     * @param config a configuration of audio source.
-     * @return Returns SUCCESS if success, other values otherwise.
+     * 根据AudioSourceConfig 初始化当前source.
      */
-    int32_t Initialize(const AudioEncodeConfig &config);
+    int32_t Initialize(const AudioEncodeConfig &input);
 
     /**
-     * Binds audio source to a specific device.
-     *
-     * @param deviceId specifies the identity of device to bind.
-     * @return Returns SUCCESS if success, other values otherwise.
+     * 获取当前的设备ID.
      */
     int32_t BindSource(uint32_t deviceId);
 
     /**
-     * Gets mute status of current encoder, dummy implemented currently. 
-     * 
-     * @param muted holds mute status if success.
-     * @return Returns SUCCESS if success, other values otherwise.
+     * 获取当前编码是否mute
      */
     int32_t GetMute(bool &muted);
 
     /**
-     * Sets mute status of current encoder, dummy implemented currently. 
-     *
-     * @param muted mute status to set.
-     * @return Returns SUCCESS if success, other values otherwise.
+     * 获取当前编码是否mute
      */
     int32_t SetMute(bool muted);
 
     /**
-    * Starts audio source.
-    *
-    * @return Returns SUCCESS if success, other values otherwise.
+    * 启动源.
     */
     int32_t Start();
-    
+
     /**
-    * 
-    * Reads stream from a audio source.
-    *
-    * @param stream source stream to read from.
-    * @param isBlockingRead reading mode.
-    * @return Returns size of data actually read.
+    * 读取源数据，返回实际读取大小.
     */
     int32_t ReadStream(AudioStream &stream, bool isBlockingRead);
 
     /**
-    * Stops audio source.
-    * 
-    * @return Returns SUCCESS if success, other values otherwise.
+    * 停止源.
     */
     int32_t Stop();
 
 private:
-    int32_t InitAudioEncoderAttr(const AudioEncodeConfig &config);
+    int32_t InitAencAttr(const AudioEncodeConfig &input);
 
 private:
     CODEC_HANDLETYPE encHandle_;
