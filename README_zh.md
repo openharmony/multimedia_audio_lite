@@ -40,13 +40,14 @@ hb build audio_manager_lite
 
 ## 相关仓<a name="section1371113476307"></a>
 
-/hmf/multimedia/camera\_lite
+[媒体子系统](https://gitee.com/openharmony/docs/blob/master/zh-cn/readme/%E5%AA%92%E4%BD%93%E5%AD%90%E7%B3%BB%E7%BB%9F.md)
 
-/hmf/multimedia/audio\_lite
+[camera\_lite](https://gitee.com/openharmony/multimedia_camera_lite/blob/master/README_zh.md)
 
-/hmf/multimedia/media\_lite
+[camera\_sample\_lite](https://gitee.com/openharmony/applications_sample_camera/blob/master/README_zh.md)
 
-/hmf/multimedia/utils\_lite
+[media\_utils\_lite](https://gitee.com/openharmony/multimedia_utils_lite/blob/master/README_zh.md)
 
-/hmf/multimedia/service\_lite
+[media\_lite](https://gitee.com/openharmony/multimedia_media_lite/blob/master/README_zh.md)
 
+**audio\_lite**
