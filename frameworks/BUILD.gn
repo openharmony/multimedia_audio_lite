@@ -45,5 +45,5 @@ shared_library("audio_capturer_lite") {
 
 config("audio_external_library_config") {
   include_dirs = [ "//foundation/multimedia/audio_lite/interfaces/kits" ]
-  include_dirs += [ "//foundation/multimedia/utils/lite/include" ]
+  include_dirs += [ "//foundation/multimedia/utils/lite/interfaces/kits" ]
 }
