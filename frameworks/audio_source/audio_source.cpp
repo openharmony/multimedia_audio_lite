@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "audio_source.h"
+#include "hal_display.h"
 #include "media_log.h"
 #include "securec.h"
 
@@ -34,6 +35,8 @@ AudioSource::AudioSource()
       audioAdapter_(nullptr),
       audioCapture_(nullptr)
 {
+    HalPlayerSysInit();
+    MEDIA_INFO_LOG("HalPlayerSysInit");
     if (g_audioManager == nullptr) {
         g_audioManager = GetAudioManagerFuncs();
         MEDIA_DEBUG_LOG("g_audioManager: %p", g_audioManager);

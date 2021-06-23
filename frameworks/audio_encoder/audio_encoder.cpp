@@ -43,7 +43,6 @@ AudioEncoder::~AudioEncoder()
         CodecDestroy(encHandle_);
         encHandle_ = nullptr;
     }
-    CodecDeinit();
     MEDIA_INFO_LOG("AudioEncoder dtor");
 }
 
