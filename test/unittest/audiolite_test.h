@@ -17,12 +17,15 @@
 
 #include <sys/time.h>
 
-#include <audio_capturer.h>
-#include <gtest/gtest.h>
-#include <media_errors.h>
+#include "gtest/gtest.h"
+#include "audio_capturer.h"
 
+
+namespace OHOS {
 const int RET_SUCCESS = 0;
 const int RET_FAILURE = -1;
+
+struct OHOS::Audio::AudioCapturerInfo audioCapInfo;
 
 class AudioliteTest : public testing::Test {
 public:
@@ -35,4 +38,5 @@ public:
     // TearDown
     void TearDown(void);
 };
+} // namespace OHOS
 #endif // AUDIOLITETEST_H

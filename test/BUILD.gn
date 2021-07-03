@@ -1,4 +1,3 @@
-#
 #  Copyright (C) 2021 Huawei Device Co., Ltd.
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -32,13 +31,13 @@ if (ohos_build_type == "debug") {
     "//drivers/peripheral/audio/interfaces/include",
     "//drivers/peripheral/codec/interfaces/include",
     "//drivers/peripheral/format/interfaces/include",
-    "./unittest",
+    "//foundation/multimedia/audio_lite/test/unittest",
     ]
+
     deps = [
-    "//foundation/graphic/surface:lite_surface",
+    "//foundation/multimedia/audio_lite/frameworks:audio_capturer_lite",
     "//foundation/multimedia/utils/lite:media_common",
     "//third_party/bounds_checking_function:libsec_shared",
-    "//foundation/multimedia/audio_lite/frameworks:audio_capturer_lite",
     ]
   }
 }
