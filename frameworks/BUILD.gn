@@ -26,24 +26,23 @@ shared_library("audio_capturer_lite") {
   include_dirs = [
     "audio_encoder/include",
     "audio_source/include",
+    "//foundation/multimedia/utils/lite/hals",
     "//drivers/peripheral/audio/interfaces/include",
     "//drivers/peripheral/codec/interfaces/include",
     "//drivers/peripheral/format/interfaces/include",
-    "//foundation/multimedia/utils/lite/hals"
   ]
+
   outdir = rebase_path("$root_out_dir")
   public_configs = [ ":audio_external_library_config" ]
   ldflags = [
     "-L$outdir",
-    "-laudio_hw",
     "-lcodec",
-    "-lhdi_media",
+    "-laudio_hw",
   ]
   deps = [
     "//foundation/graphic/surface:lite_surface",
     "//foundation/multimedia/utils/lite:media_common",
     "//third_party/bounds_checking_function:libsec_shared",
-    "//$ohos_vendor_adapter_dir/multimedia:libhdi_media",
   ]
 }
 
