@@ -17,13 +17,14 @@
 #define AUDIO_CAPTURER_IMPL_H
 
 #include <sys/time.h>
+
 #include "audio_capturer.h"
 
 namespace OHOS {
 namespace Audio {
 enum AudioChannel {
-    AUDIO_CHANNEL_IN_MONO   = 1, /* mono */
-    AUDIO_CHANNEL_IN_STEREO = 2, /* stereo */
+    AUDIO_CHANNEL_IN_MONO   = 1,
+    AUDIO_CHANNEL_IN_STEREO = 2,
     AUDIO_CHANNEL_BUTT
 };
 
@@ -44,6 +45,7 @@ public:
     uint64_t GetFrameCount();
     State GetStatus();
     bool GetTimestamp(Timestamp &timestamp, Timestamp::Timebase base);
+    
 private:
     std::unique_ptr<AudioSource> audioSource_;
     std::unique_ptr<AudioEncoder> audioEncoder_;

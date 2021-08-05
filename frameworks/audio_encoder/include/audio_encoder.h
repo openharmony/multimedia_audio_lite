@@ -18,19 +18,20 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <time.h>
 #include <memory>
+#include <time.h>
 #include <vector>
+
+#include "codec_interface.h"
+#include "format.h"
 #include "media_errors.h"
 #include "media_info.h"
-#include "format.h"
-#include "codec_interface.h"
+
 namespace OHOS {
 namespace Audio {
 constexpr int32_t AUDIO_ENC_PARAM_NUM = 8;
 /* count of audio frame in Buffer */
 constexpr uint32_t AUDIO_FRAME_NUM_IN_BUF = 30;
-
 /* sample per frame for all encoder(aacplus:2048) */
 constexpr uint32_t AUDIO_AUDIO_POINT_NUM = 1024;
 
@@ -54,42 +55,63 @@ public:
     ~AudioEncoder();
 
     /**
-     * 根据AudioSourceConfig 初始化当前source.
-     */
-    int32_t Initialize(const AudioEncodeConfig &input);
+    * Initailizes the audio source according to a specific configuration.
+    *
+    * @param config a configuration of audio source.
+    * @return Returns SUCCESS if success, other values otherwise.
+    */
+    int32_t Initialize(const AudioEncodeConfig &config);
 
     /**
-     * 获取当前的设备ID.
-     */
+    * Binds audio source to a specific device.
+    *
+    * @param deviceId specifies the identity of device to bind.
+    * @return Returns SUCCESS if success, other values otherwise.
+    */
     int32_t BindSource(uint32_t deviceId);
 
     /**
-     * 获取当前编码是否mute
-     */
+    * Gets mute status of current encoder, dummy implemented currently.
+    *
+    * @param muted holds mute status if success.
+    * @return Returns SUCCESS if success, other values otherwise.
+    */
     int32_t GetMute(bool &muted);
 
     /**
-     * 获取当前编码是否mute
-     */
+    * Sets mute status of current encoder, dummy implemented currently.
+    *
+    * @param muted mute status to set.
+    * @return Returns SUCCESS if success, other values otherwise.
+    */
     int32_t SetMute(bool muted);
 
     /**
-    * 启动源.
+    * Starts audio source.
+    *
+    * @return Returns SUCCESS if success, other values otherwise.
     */
     int32_t Start();
 
     /**
-    * 读取源数据，返回实际读取大小.
+    *
+    * Reads stream from a audio source.
+    *
+    * @param stream source stream to read from.
+    * @param isBlockingRead reading mode.
+    * @return Returns size of data actually read.
     */
     int32_t ReadStream(AudioStream &stream, bool isBlockingRead);
 
     /**
-    * 停止源.
+    * Stops audio source.
+    *
+    * @return Returns SUCCESS if success, other values otherwise.
     */
     int32_t Stop();
 
 private:
-    int32_t InitAencAttr(const AudioEncodeConfig &input);
+    int32_t InitAudioEncoderAttr(const AudioEncodeConfig &config);
 
 private:
     CODEC_HANDLETYPE encHandle_;
