@@ -108,7 +108,7 @@ public:
  */
 enum State : uint32_t {
     /** Prepared */
-    PREPPARED,
+    PREPARED,
     /** Recording */
     RECORDING,
     /** Stopped */

@@ -99,7 +99,7 @@ int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInf
         return ret;
     }
     info_ = info;
-    status = PREPPARED;
+    status = PREPARED;
     MEDIA_INFO_LOG("Set Capturer Info SUCCESS");
     return SUCCESS;
 }
@@ -113,7 +113,7 @@ int32_t AudioCapturer::AudioCapturerImpl::GetCapturerInfo(AudioCapturerInfo &inf
 
 bool AudioCapturer::AudioCapturerImpl::Record()
 {
-    if (status != PREPPARED &&
+    if (status != PREPARED &&
         status != STOPPED) {
         MEDIA_ERR_LOG("Record ILLEGAL_STATE status:%u", status);
         return ERR_ILLEGAL_STATE;
