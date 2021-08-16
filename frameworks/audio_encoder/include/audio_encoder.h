@@ -110,10 +110,16 @@ public:
     */
     int32_t Stop();
 
+    /**
+    * release.
+    */
+    int32_t Release();
+
 private:
     int32_t InitAudioEncoderAttr(const AudioEncodeConfig &config);
 
 private:
+    bool initialized_;
     CODEC_HANDLETYPE encHandle_;
     CodecType domainKind_ = AUDIO_ENCODER;
     AvCodecMime codecMime_ = MEDIA_MIMETYPE_AUDIO_AAC;
