@@ -21,14 +21,15 @@ namespace OHOS {
 namespace Audio {
 using namespace OHOS::Media;
 
-constexpr uint32_t AUDIO_READ_STREAM_TIME_OUT_MS = 1000;
+constexpr uint32_t AUDIO_READ_STREAM_TIME_OUT_MS = 1000; /* 1S */
 
 constexpr uint32_t AUDIO_CHANNEL_MONO = 1;
 constexpr uint32_t AUDIO_CHANNEL_STEREO = 2;
 
 AudioEncoder::AudioEncoder()
-    : encHandle_(nullptr),
-      started_(false)
+    :initialized_(false),
+    encHandle_(nullptr),
+    started_(false)
 {
     for (int i = 0; i < AUDIO_ENC_PARAM_NUM; i++) {
         encAttr_[i] = {};
@@ -39,20 +40,51 @@ AudioEncoder::AudioEncoder()
 
 AudioEncoder::~AudioEncoder()
 {
-    if (encHandle_ != nullptr) {
-        CodecDestroy(encHandle_);
-        encHandle_ = nullptr;
+    if (initialized_) {
+        Release();
     }
     MEDIA_INFO_LOG("AudioEncoder dtor");
 }
 
 static bool IsAudioCodecFormatSupported(AudioCodecFormat format)
 {
-    if ((format < AAC_LC) || (format > AAC_ELD)) {
-        MEDIA_ERR_LOG("Invalid format: %d", format);
+    if ((format < AAC_LC) || (format > G726)) {
+        MEDIA_ERR_LOG("Invalid format:%d", format);
         return false;
     }
     return true;
+}
+
+static bool IsAudioSampleRateSupported(AudioCodecFormat format, uint32_t sampleRate)
+{
+    if (format == G711A || format == G711U || format == G726) {
+        if (sampleRate != AUD_SAMPLE_RATE_8000) {
+            MEDIA_ERR_LOG("Invalid sampleRate:%d, G711/G726 only support 8kHz", sampleRate);
+            return false;
+        }
+    }
+    return true;
+}
+
+static AvCodecMime GetMimeFromAudioCodecFormat(AudioCodecFormat format)
+{
+    switch (format) {
+        case AAC_LC:
+        case AAC_HE_V1:
+        case AAC_HE_V2:
+        case AAC_LD:
+        case AAC_ELD:
+            return MEDIA_MIMETYPE_AUDIO_AAC;
+        case G711A:
+            return MEDIA_MIMETYPE_AUDIO_G711A;
+        case G711U:
+            return MEDIA_MIMETYPE_AUDIO_G711U;
+        case G726:
+            return MEDIA_MIMETYPE_AUDIO_G726;
+        default:
+            MEDIA_ERR_LOG("Invalid format:0x%x", format);
+            return MEDIA_MIMETYPE_INVALID;
+    }
 }
 
 static Profile GetProfileFromAudioCodecFormat(AudioCodecFormat format)
@@ -78,17 +110,27 @@ static AudioSampleRate ConvertSampleRate(uint32_t sampleRate)
 {
     switch (sampleRate) {
         case AUD_SAMPLE_RATE_8000:
+            return AUD_SAMPLE_RATE_8000;
         case AUD_SAMPLE_RATE_11025:
+            return AUD_SAMPLE_RATE_11025;
         case AUD_SAMPLE_RATE_12000:
+            return AUD_SAMPLE_RATE_12000;
         case AUD_SAMPLE_RATE_16000:
+            return AUD_SAMPLE_RATE_16000;
         case AUD_SAMPLE_RATE_22050:
+            return AUD_SAMPLE_RATE_22050;
         case AUD_SAMPLE_RATE_24000:
+            return AUD_SAMPLE_RATE_24000;
         case AUD_SAMPLE_RATE_32000:
+            return AUD_SAMPLE_RATE_32000;
         case AUD_SAMPLE_RATE_44100:
+            return AUD_SAMPLE_RATE_44100;
         case AUD_SAMPLE_RATE_48000:
+            return AUD_SAMPLE_RATE_48000;
         case AUD_SAMPLE_RATE_64000:
+            return AUD_SAMPLE_RATE_64000;
         case AUD_SAMPLE_RATE_96000:
-            return static_cast<AudioSampleRate>(sampleRate);
+            return AUD_SAMPLE_RATE_96000;
         default:
             MEDIA_ERR_LOG("Invalid sample_rate:%u", sampleRate);
             return AUD_SAMPLE_RATE_48000;
@@ -111,7 +153,11 @@ static AudioSoundMode ConvertSoundMode(uint32_t channelCount)
 int32_t AudioEncoder::InitAudioEncoderAttr(const AudioEncodeConfig &config)
 {
     if (!IsAudioCodecFormatSupported(config.audioFormat)) {
-        MEDIA_ERR_LOG("input.audioFormat:0x%x is not support", config.audioFormat);
+        MEDIA_ERR_LOG("audioFormat:0x%x is not support", config.audioFormat);
+        return ERR_INVALID_PARAM;
+    }
+    if (!IsAudioSampleRateSupported(config.audioFormat, config.sampleRate)) {
+        MEDIA_ERR_LOG("audioFormat:%d is not support sampleRate:%d", config.audioFormat, config.sampleRate);
         return ERR_INVALID_PARAM;
     }
     uint32_t paramIndex = 0;
@@ -120,7 +166,7 @@ int32_t AudioEncoder::InitAudioEncoderAttr(const AudioEncodeConfig &config)
     encAttr_[paramIndex].val = &domainKind_;
     encAttr_[paramIndex].size = sizeof(CodecType);
     paramIndex++;
-    codecMime_ = MEDIA_MIMETYPE_AUDIO_AAC;
+    codecMime_ = GetMimeFromAudioCodecFormat(config.audioFormat);
     encAttr_[paramIndex].key = KEY_MIMETYPE;
     encAttr_[paramIndex].val = &codecMime_;
     encAttr_[paramIndex].size = sizeof(AvCodecMime);
@@ -170,18 +216,18 @@ int32_t AudioEncoder::Initialize(const AudioEncodeConfig &config)
         MEDIA_ERR_LOG("CodecCreate failed:0x%x", ret);
         return ret;
     }
+    initialized_ = true;
     return SUCCESS;
 }
 
 int32_t AudioEncoder::BindSource(uint32_t deviceId)
 {
-    int32_t ret = SUCCESS;
     Param params[1];
     memset_s(params, sizeof(params), 0x00, sizeof(params));
     params[0].key = KEY_DEVICE_ID;
     params[0].val = reinterpret_cast<void *>(&deviceId);
     params[0].size = sizeof(uint32_t);
-    ret = CodecSetParameter(encHandle_, params, sizeof(params) / sizeof(params[0]));
+    int32_t ret = CodecSetParameter(encHandle_, params, sizeof(params) / sizeof(params[0]));
     if (ret != SUCCESS) {
         MEDIA_ERR_LOG("CodecSetDevice:0x%x", ret);
         return ret;
@@ -201,8 +247,11 @@ int32_t AudioEncoder::SetMute(bool muted)
 
 int32_t AudioEncoder::Start()
 {
-    int32_t ret = SUCCESS;
-    ret = CodecStart(encHandle_);
+    if (!initialized_) {
+        MEDIA_ERR_LOG("not initialized");
+        return ERR_ILLEGAL_STATE;
+    }
+    int32_t ret = CodecStart(encHandle_);
     if (ret != SUCCESS) {
         MEDIA_ERR_LOG("CodecStart failed:0x%x", ret);
         return ret;
@@ -228,7 +277,7 @@ int32_t AudioEncoder::ReadStream(AudioStream &stream, bool isBlockingRead)
         timeoutMs = 0;
     }
     OutputInfo outInfo;
-    CodecBufferInfo outBuf;
+    CodecBufferInfo outBuf = {};
     outInfo.bufferCnt = 1;
     outInfo.buffers = &outBuf;
     int32_t ret = CodecDequeueOutput(encHandle_, timeoutMs, nullptr, &outInfo);
@@ -240,8 +289,7 @@ int32_t AudioEncoder::ReadStream(AudioStream &stream, bool isBlockingRead)
     errno_t retCopy = memcpy_s(stream.buffer, stream.bufferLen, outInfo.buffers[0].addr,
                                outInfo.buffers[0].length);
     if (retCopy != EOK) {
-        MEDIA_ERR_LOG("memcpy_s encData.encodedData %p timeStamp:%lld failed:0x%x",
-                      outInfo.buffers[0].addr, outInfo.timeStamp, retCopy);
+        MEDIA_ERR_LOG("memcpy_s failed, timeStamp:%lld, retCopy:0x%x", outInfo.timeStamp, retCopy);
         return ERR_INVALID_OPERATION;
     } else {
         readLen = outInfo.buffers[0].length;
@@ -258,6 +306,20 @@ int32_t AudioEncoder::Stop()
         MEDIA_ERR_LOG("Codec not Start");
     }
     return CodecStop(encHandle_);
+}
+
+int32_t AudioEncoder::Release()
+{
+    MEDIA_DEBUG_LOG("AudioEncoder::Release");
+    if (!initialized_) {
+        MEDIA_ERR_LOG("Codec not initialized");
+    }
+    if (encHandle_ != nullptr) {
+        CodecDestroy(encHandle_);
+        encHandle_ = nullptr;
+    }
+    initialized_ = false;
+    return SUCCESS;
 }
 }  // namespace Audio
 }  // namespace OHOS

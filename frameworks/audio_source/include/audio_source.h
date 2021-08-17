@@ -44,6 +44,13 @@ struct AudioSourceConfig {
     AudioStreamType streamUsage;
 };
 
+struct AudioFrame {
+    uint8_t *buffer;    /* the virtual address of stream */
+    uint32_t bufferLen;   /* stream lenth, by bytes */
+    struct AudioTimeStamp time;
+    uint64_t frames;
+};
+
 class AudioSource {
 public:
     AudioSource();
@@ -112,12 +119,11 @@ public:
      *
      * Reads frame from source.
      *
-     * @param buffer source to read from.
-     * @param bufferBytes size of buffer.
+     * @param frame, the buffer to storage the info of frame that read from source.
      * @param isBlockingRead reading mode.
      * @return Returns size of data actually read.
     */
-    int32_t ReadFrame(uint8_t *buffer, size_t bufferBytes, bool isBlockingRead);
+    int32_t ReadFrame(AudioFrame &frame, bool isBlockingRead);
 
     /**
      * Stops audio source.
@@ -125,6 +131,11 @@ public:
      * @return Returns SUCCESS if success, other values otherwise.
     */
     int32_t Stop();
+
+    /**
+    * release.
+    */
+    int32_t Release();
 
 private:
     int32_t InitCheck();

@@ -23,8 +23,8 @@
 namespace OHOS {
 namespace Audio {
 enum AudioChannel {
-    AUDIO_CHANNEL_IN_MONO   = 1,
-    AUDIO_CHANNEL_IN_STEREO = 2,
+    AUDIO_CHANNEL_IN_MONO   = 1, /* mono */
+    AUDIO_CHANNEL_IN_STEREO = 2, /* stereo */
     AUDIO_CHANNEL_BUTT
 };
 
@@ -47,6 +47,7 @@ public:
     bool GetTimestamp(Timestamp &timestamp, Timestamp::Timebase base);
     
 private:
+    bool StopInternal();
     std::unique_ptr<AudioSource> audioSource_;
     std::unique_ptr<AudioEncoder> audioEncoder_;
     State status = RELEASED;
