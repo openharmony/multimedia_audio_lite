@@ -107,6 +107,8 @@ public:
  * @version 1.0
  */
 enum State : uint32_t {
+    /** Initialized */
+    INITIALIZED,
     /** Prepared */
     PREPARED,
     /** Recording */

@@ -191,7 +191,7 @@ int32_t AudioEncoder::InitAudioEncoderAttr(const AudioEncodeConfig &config)
     encAttr_[paramIndex].val = &soundMode_;
     encAttr_[paramIndex].size = sizeof(AudioSoundMode);
     paramIndex++;
-    ptNumPerFrm_ = AUDIO_AUDIO_POINT_NUM;
+    ptNumPerFrm_ = AUDIO_POINT_NUM;
     encAttr_[paramIndex].key = KEY_POINT_NUM_PER_FRAME;
     encAttr_[paramIndex].val = &ptNumPerFrm_;
     encAttr_[paramIndex].size = sizeof(uint32_t);

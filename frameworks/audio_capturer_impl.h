@@ -16,6 +16,7 @@
 #ifndef AUDIO_CAPTURER_IMPL_H
 #define AUDIO_CAPTURER_IMPL_H
 
+#include <mutex>
 #include <sys/time.h>
 
 #include "audio_capturer.h"
@@ -50,10 +51,11 @@ private:
     bool StopInternal();
     std::unique_ptr<AudioSource> audioSource_;
     std::unique_ptr<AudioEncoder> audioEncoder_;
-    State status = RELEASED;
+    State status_ = INITIALIZED;
     AudioCapturerInfo info_;
     Timestamp timestamp_;
     int32_t inputDeviceId_ = 0;
+    std::mutex mutex_;
 };
 }  // namespace Audio
 }  // namespace OHOS

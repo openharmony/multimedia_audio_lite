@@ -33,7 +33,7 @@ constexpr int32_t AUDIO_ENC_PARAM_NUM = 8;
 /* count of audio frame in Buffer */
 constexpr uint32_t AUDIO_FRAME_NUM_IN_BUF = 30;
 /* sample per frame for all encoder(aacplus:2048) */
-constexpr uint32_t AUDIO_AUDIO_POINT_NUM = 1024;
+constexpr uint32_t AUDIO_POINT_NUM = 1024;
 
 struct AudioEncodeConfig {
     AudioCodecFormat audioFormat;
@@ -127,7 +127,7 @@ private:
     AudioSampleRate sampleRate_ = AUD_SAMPLE_RATE_INVALID;
     uint32_t bitRate_ = 0;
     AudioSoundMode soundMode_ = AUD_SOUND_MODE_INVALID;
-    uint32_t ptNumPerFrm_ = AUDIO_AUDIO_POINT_NUM;
+    uint32_t ptNumPerFrm_ = AUDIO_POINT_NUM;
     uint32_t bufSize_ = AUDIO_FRAME_NUM_IN_BUF;
     Param encAttr_[AUDIO_ENC_PARAM_NUM];
     bool started_;
