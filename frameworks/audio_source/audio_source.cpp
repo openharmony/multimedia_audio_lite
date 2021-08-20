@@ -43,7 +43,7 @@ AudioSource::AudioSource()
     int size = 0;
     struct AudioAdapterDescriptor *descs = nullptr;
     g_audioManager->GetAllAdapters(g_audioManager, &descs, &size);
-    MEDIA_DEBUG_LOG("GetAllAdapters size:%d ", size);
+    MEDIA_DEBUG_LOG("GetAllAdapters size:%d", size);
 
     for (int index = 0; index < size; index++) {
         struct AudioAdapterDescriptor *desc = &descs[index];
@@ -116,7 +116,7 @@ uint64_t AudioSource::GetFrameCount()
 
 int32_t AudioSource::EnumDeviceBySourceType(AudioSourceType inputSource, std::vector<AudioDeviceDesc> &devices)
 {
-    if (inputSource != AUDIO_MIC) {
+    if (inputSource != AUDIO_MIC && inputSource != AUDIO_SOURCE_DEFAULT) {
         MEDIA_ERR_LOG("AudioSource only support AUDIO_MIC");
         return ERR_INVALID_PARAM;
     }
@@ -264,13 +264,13 @@ int32_t AudioSource::ReadFrame(AudioFrame &frame, bool isBlockingRead)
 int32_t AudioSource::Stop()
 {
     MEDIA_INFO_LOG("AudioSource::Stop");
-    int32_t ret = InitCheck();
-    if (ret != SUCCESS) {
-        return ret;
+    if (!started_) {
+        MEDIA_ERR_LOG("AudioSource not Start");
+        return ERR_ILLEGAL_STATE;
     }
 
     AUDIO_RETURN_VAL_IF_NULL(audioCapture_);
-    ret = audioCapture_->control.Stop(reinterpret_cast<AudioHandle>(audioCapture_));
+    int32_t ret = audioCapture_->control.Stop(reinterpret_cast<AudioHandle>(audioCapture_));
     if (ret != SUCCESS) {
         MEDIA_ERR_LOG("Stop failed:0x%x", ret);
         return ret;

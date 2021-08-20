@@ -15,12 +15,20 @@
 
 #include "audio_capturer.h"
 #include "audio_capturer_impl.h"
+#include "media_log.h"
 
 namespace OHOS {
 namespace Audio {
+#define CHK_NULL_RETURN(ptr, ret) \
+    do { \
+        if ((ptr) == nullptr) { \
+            MEDIA_ERR_LOG("ptr null"); \
+            return (ret); \
+        } \
+    } while (0)
 
 AudioCapturer::AudioCapturer()
-    : impl_(new AudioCapturerImpl())
+    : impl_(new(std::nothrow) AudioCapturerImpl())
 {
 }
 
@@ -35,46 +43,55 @@ bool AudioCapturer::GetMinFrameCount(int32_t sampleRate, int32_t channelCount, A
 
 uint64_t AudioCapturer::GetFrameCount()
 {
+    CHK_NULL_RETURN(impl_, 0);
     return impl_->GetFrameCount();
 }
 
 State AudioCapturer::GetStatus()
 {
+    CHK_NULL_RETURN(impl_, INITIALIZED);
     return impl_->GetStatus();
 }
 
 bool AudioCapturer::GetAudioTime(Timestamp &timestamp, Timestamp::Timebase base)
 {
+    CHK_NULL_RETURN(impl_, false);
     return impl_->GetTimestamp(timestamp, base);
 }
 
 int32_t AudioCapturer::SetCapturerInfo(const AudioCapturerInfo info)
 {
+    CHK_NULL_RETURN(impl_, -1);
     return impl_->SetCapturerInfo(info);
 }
 
 int32_t AudioCapturer::GetCapturerInfo(AudioCapturerInfo &info)
 {
+    CHK_NULL_RETURN(impl_, -1);
     return impl_->GetCapturerInfo(info);
 }
 
 bool AudioCapturer::Start()
 {
+    CHK_NULL_RETURN(impl_, false);
     return impl_->Record();
 }
 
 bool AudioCapturer::Stop()
 {
+    CHK_NULL_RETURN(impl_, false);
     return impl_->Stop();
 }
 
 bool AudioCapturer::Release()
 {
+    CHK_NULL_RETURN(impl_, false);
     return impl_->Release();
 }
 
 int32_t AudioCapturer::Read(uint8_t *buffer, size_t userSize, bool isBlockingRead)
 {
+    CHK_NULL_RETURN(impl_, -1);
     return impl_->Read(buffer, userSize, isBlockingRead);
 }
 

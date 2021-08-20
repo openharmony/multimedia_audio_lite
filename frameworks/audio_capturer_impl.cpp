@@ -46,7 +46,10 @@ AudioCapturer::AudioCapturerImpl::AudioCapturerImpl()
 
 AudioCapturer::AudioCapturerImpl::~AudioCapturerImpl()
 {
-    Release();
+    if (status_ != RELEASED) {
+        Release();
+    }
+    MEDIA_ERR_LOG("dtor");
 }
 
 bool AudioCapturer::AudioCapturerImpl::GetMinFrameCount(int32_t sampleRate, int32_t channelCount, AudioCodecFormat audioFormat, size_t &frameCount)
@@ -56,25 +59,42 @@ bool AudioCapturer::AudioCapturerImpl::GetMinFrameCount(int32_t sampleRate, int3
 
 uint64_t AudioCapturer::AudioCapturerImpl::GetFrameCount()
 {
+    CHK_NULL_RETURN(audioSource_, 0);
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (status_ == INITIALIZED || status_ == RELEASED) {
+        MEDIA_ERR_LOG("check state:%u failed", status_);
+        return 0;
+    }
     return audioSource_->GetFrameCount();
 }
 
 State AudioCapturer::AudioCapturerImpl::GetStatus()
 {
-    return status;
+    std::lock_guard<std::mutex> lock(mutex_);
+    return status_;
 }
 
 bool AudioCapturer::AudioCapturerImpl::GetTimestamp(Timestamp &timestamp, Timestamp::Timebase base)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (status_ == RELEASED) {
+        MEDIA_ERR_LOG("check state:%u failed", status_);
+        return false;
+    }
     timestamp = timestamp_;
     return true;
 }
 
 int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInfo info)
 {
-    int32_t ret = SUCCESS;
+    CHK_NULL_RETURN(audioSource_, ERROR);
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (status_ != INITIALIZED) {
+        MEDIA_ERR_LOG("check state:%u failed", status_);
+        return ERR_ILLEGAL_STATE;
+    }
     std::vector<AudioDeviceDesc> devices;
-    ret = audioSource_->EnumDeviceBySourceType(info.inputSource, devices);
+    int32_t ret = audioSource_->EnumDeviceBySourceType(info.inputSource, devices);
     if (ret != SUCCESS || devices.empty()) {
         MEDIA_ERR_LOG("EnumDeviceBySourceType failed inputSource:%d", info.inputSource);
         return ret;
@@ -115,7 +135,7 @@ int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInf
         }
     }
     info_ = info;
-    status = PREPARED;
+    status_ = PREPARED;
     MEDIA_INFO_LOG("Set Capturer Info SUCCESS");
     return SUCCESS;
 }
@@ -123,16 +143,22 @@ int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInf
 
 int32_t AudioCapturer::AudioCapturerImpl::GetCapturerInfo(AudioCapturerInfo &info)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (status_ == RELEASED) {
+        MEDIA_ERR_LOG("check state:%u failed", status_);
+        return ERR_INVALID_OPERATION;
+    }
     info = info_;
     return SUCCESS;
 }
 
 bool AudioCapturer::AudioCapturerImpl::Record()
 {
-    if (status != PREPARED &&
-        status != STOPPED) {
-        MEDIA_ERR_LOG("Record ILLEGAL_STATE status:%u", status);
-        return ERR_ILLEGAL_STATE;
+    CHK_NULL_RETURN(audioSource_, false);
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (status_ != PREPARED && status_ != STOPPED) {
+        MEDIA_ERR_LOG("not PREPARED or STOPPED status:%u", status_);
+        return false;
     }
     int32_t ret = audioSource_->Start();
     if (ret != SUCCESS) {
@@ -158,7 +184,7 @@ bool AudioCapturer::AudioCapturerImpl::Record()
             return false;
         }
     }
-    status = RECORDING;
+    status_ = RECORDING;
     MEDIA_INFO_LOG("Start Audio Capturer SUCCESS");
     return true;
 }
@@ -169,8 +195,10 @@ int32_t AudioCapturer::AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize,
         MEDIA_ERR_LOG("Invalid buffer:%p userSize:%u", buffer, userSize);
         return ERR_INVALID_READ;
     }
-    if (status != RECORDING) {
-        MEDIA_ERR_LOG("ILLEGAL_STATE  status:%u", status);
+    CHK_NULL_RETURN(audioSource_, ERROR);
+
+    if (status_ != RECORDING) {
+        MEDIA_ERR_LOG("ILLEGAL_STATE  status_:%u", status_);
         return ERR_INVALID_READ;
     }
     int32_t readLen = ERR_INVALID_READ;
@@ -220,25 +248,32 @@ bool AudioCapturer::AudioCapturerImpl::StopInternal()
         return false;
     }
     MEDIA_INFO_LOG("Stop Audio Capturer SUCCESS");
-    status = STOPPED;
+    status_ = STOPPED;
     return true;
 }
 
 bool AudioCapturer::AudioCapturerImpl::Stop()
 {
-    if (status != RECORDING) {
-        MEDIA_ERR_LOG("not RECORDING status:%u", status);
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (status_ != RECORDING) {
+        MEDIA_ERR_LOG("not RECORDING status:%u", status_);
         return false;
     }
     return StopInternal();
 }
+
 bool AudioCapturer::AudioCapturerImpl::Release()
 {
-    if (status == RELEASED) {
-        MEDIA_ERR_LOG("ILLEGAL_STATE status:%u", status);
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (status_ == RELEASED) {
+        MEDIA_ERR_LOG("ILLEGAL_STATE status_:%u", status_);
         return false;
     }
-    if (status == RECORDING) {
+    if (status_ == INITIALIZED) {
+        status_ = RELEASED;
+        return true;
+    }
+    if (status_ == RECORDING) {
         if (!StopInternal()) {
             MEDIA_ERR_LOG("StopInternal err");
             return false;
@@ -257,7 +292,7 @@ bool AudioCapturer::AudioCapturerImpl::Release()
         MEDIA_ERR_LOG("audioSource_ Release failed:0x%x", ret);
         return false;
     }
-    status = RELEASED;
+    status_ = RELEASED;
     MEDIA_INFO_LOG("Release Audio Capturer SUCCESS");
     return true;
 }
