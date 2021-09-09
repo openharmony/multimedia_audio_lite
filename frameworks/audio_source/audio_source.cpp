@@ -44,7 +44,7 @@ AudioSource::AudioSource()
     int size = 0;
     struct AudioAdapterDescriptor *descs = nullptr;
     g_audioManager->GetAllAdapters(g_audioManager, &descs, &size);
-    MEDIA_DEBUG_LOG("GetAllAdapters: %d ", size);
+    MEDIA_DEBUG_LOG("GetAllAdapters size:%d", size);
 
     for (int index = 0; index < size; index++) {
         struct AudioAdapterDescriptor *desc = &descs[index];
@@ -65,7 +65,11 @@ AudioSource::AudioSource()
 
 AudioSource::~AudioSource()
 {
-    MEDIA_DEBUG_LOG("audioAdapter_ :%p", audioAdapter_);
+    MEDIA_DEBUG_LOG("in");
+    if (initialized_) {
+        Release();
+    }
+
     if (audioAdapter_ != nullptr) {
         MEDIA_INFO_LOG("audioAdapter_ UnloadModule: %p", audioAdapter_);
         g_audioManager->UnloadAdapter(g_audioManager, audioAdapter_);
@@ -85,6 +89,12 @@ int32_t AudioSource::InitCheck()
 bool AudioSource::GetMinFrameCount(int32_t sampleRate, int32_t channelCount,
                                    AudioCodecFormat audioFormat, size_t &frameCount)
 {
+    if (sampleRate <= 0 || channelCount <= 0 || audioFormat < AUDIO_DEFAULT ||
+        audioFormat >= FORMAT_BUTT) {
+        MEDIA_ERR_LOG("invalid params sampleRate:%d channelCount:%d audioFormat:%d", sampleRate,
+                      channelCount, audioFormat);
+        return false;
+    }
     frameCount = 0;
     return true;
 }
@@ -99,7 +109,7 @@ uint64_t AudioSource::GetFrameCount()
     uint64_t frameCount = 0;
     ret = audioCapture_->attr.GetFrameCount(reinterpret_cast<AudioHandle>(audioCapture_), &frameCount);
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("attr GetFrameCount failed 0x%x ", ret);
+        MEDIA_ERR_LOG("attr GetFrameCount failed:0x%x", ret);
         return ret;
     }
     return frameCount;
@@ -107,7 +117,7 @@ uint64_t AudioSource::GetFrameCount()
 
 int32_t AudioSource::EnumDeviceBySourceType(AudioSourceType inputSource, std::vector<AudioDeviceDesc> &devices)
 {
-    if (inputSource != AUDIO_MIC) {
+    if (inputSource != AUDIO_MIC && inputSource != AUDIO_SOURCE_DEFAULT) {
         MEDIA_ERR_LOG("AudioSource only support AUDIO_MIC");
         return ERR_INVALID_PARAM;
     }
@@ -122,22 +132,75 @@ int32_t AudioSource::EnumDeviceBySourceType(AudioSourceType inputSource, std::ve
     return SUCCESS;
 }
 
-int32_t AudioSource::Initialize(const AudioSourceConfig &input)
+static bool ConvertCodecFormatToAudioFormat(AudioCodecFormat codecFormat, AudioFormat *audioFormat)
+{
+    if (audioFormat == nullptr) {
+        MEDIA_ERR_LOG("audioFormat is NULL");
+        return false;
+    }
+
+    switch (codecFormat) {
+        case AUDIO_DEFAULT:
+        case PCM:
+            *audioFormat = AUDIO_FORMAT_PCM_16_BIT;
+            break;
+        case AAC_LC:
+            *audioFormat = AUDIO_FORMAT_AAC_LC;
+            break;
+        case AAC_LD:
+            *audioFormat = AUDIO_FORMAT_AAC_LD;
+            break;
+        case AAC_ELD:
+            *audioFormat = AUDIO_FORMAT_AAC_ELD;
+            break;
+        case AAC_HE_V1:
+            *audioFormat = AUDIO_FORMAT_AAC_HE_V1;
+            break;
+        case AAC_HE_V2:
+            *audioFormat = AUDIO_FORMAT_AAC_HE_V2;
+            break;
+        case G711A:
+            *audioFormat = AUDIO_FORMAT_G711A;
+            break;
+        case G711U:
+            *audioFormat = AUDIO_FORMAT_G711U;
+            break;
+        case G726:
+            *audioFormat = AUDIO_FORMAT_G726;
+            break;
+        default: {
+            MEDIA_ERR_LOG("not support this codecFormat:%d", codecFormat);
+            return false;
+        }
+    }
+    return true;
+}
+
+int32_t AudioSource::Initialize(const AudioSourceConfig &config)
 {
     AUDIO_RETURN_VAL_IF_NULL(audioAdapter_);
-
-    MEDIA_INFO_LOG("deviceId:0x%x input.sampleRate:%d", input.deviceId, input.sampleRate);
-    int32_t ret = SUCCESS;
+    MEDIA_INFO_LOG("deviceId:0x%x config.sampleRate:%d", config.deviceId, config.sampleRate);
     struct AudioDeviceDescriptor desc;
     struct AudioSampleAttributes attrs;
-    attrs.type = AUDIO_IN_MEDIA;
-    attrs.sampleRate = input.sampleRate;
-    attrs.format = AUDIO_FORMAT_PCM_16_BIT;
-    attrs.channelCount = input.channelCount;
-    attrs.interleaved = input.interleaved;
-    ret = audioAdapter_->CreateCapture(audioAdapter_, &desc, &attrs, &audioCapture_);
+    if (config.streamUsage == TYPE_MEDIA || config.streamUsage == TYPE_DEFAULT) {
+        attrs.type = AUDIO_IN_MEDIA;
+    } else if (config.streamUsage == TYPE_VOICE_COMMUNICATION) {
+        attrs.type = AUDIO_IN_COMMUNICATION;
+    }
+    if (config.bitWidth != BIT_WIDTH_16) {
+        MEDIA_ERR_LOG("not support bitWidth:%d, only support 16 bit width", config.bitWidth);
+        return ERR_INVALID_PARAM;
+    }
+    if (ConvertCodecFormatToAudioFormat(config.audioFormat, &(attrs.format)) == false) {
+        MEDIA_ERR_LOG("not support audioFormat:%d", config.audioFormat);
+        return ERR_INVALID_PARAM;
+    }
+    attrs.sampleRate = config.sampleRate;
+    attrs.channelCount = config.channelCount;
+    attrs.interleaved = config.interleaved;
+    int32_t ret = audioAdapter_->CreateCapture(audioAdapter_, &desc, &attrs, &audioCapture_);
     if (ret != SUCCESS || audioCapture_ == nullptr) {
-        MEDIA_ERR_LOG("CreateCapture failed 0x%x", ret);
+        MEDIA_ERR_LOG("CreateCapture failed:0x%x", ret);
         return ret;
     }
     initialized_ = true;
@@ -154,7 +217,7 @@ int32_t AudioSource::GetCurrentDeviceId(uint32_t &deviceId)
     AUDIO_RETURN_VAL_IF_NULL(audioCapture_);
     int32_t ret = audioCapture_->attr.GetCurrentChannelId(reinterpret_cast<AudioHandle>(audioCapture_), &deviceId);
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("GetCurrentChannelId failed 0x%x", ret);
+        MEDIA_ERR_LOG("GetCurrentChannelId failed:0x%x", ret);
         return ret;
     }
     MEDIA_INFO_LOG("deviceId:0x%x", deviceId);
@@ -171,43 +234,63 @@ int32_t AudioSource::Start()
     AUDIO_RETURN_VAL_IF_NULL(audioCapture_);
     ret = audioCapture_->control.Start(reinterpret_cast<AudioHandle>(audioCapture_));
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("audioCapture_ Start failed 0x%x", ret);
+        MEDIA_ERR_LOG("audioCapture_ Start failed:0x%x", ret);
         return ret;
     }
     started_ = true;
     return SUCCESS;
 }
 
-int32_t AudioSource::ReadFrame(uint8_t *buffer, size_t bufferBytes, bool isBlockingRead)
+int32_t AudioSource::ReadFrame(AudioFrame &frame, bool isBlockingRead)
 {
     if (!started_) {
         MEDIA_ERR_LOG("AudioSource not Start");
-        return ERR_ILLEGAL_STATE;
+        return ERR_INVALID_READ;
     }
-    return SUCCESS;
+    AUDIO_RETURN_VAL_IF_NULL(audioCapture_);
+    uint64_t readlen = ERR_INVALID_READ;
+    int32_t ret = audioCapture_->CaptureFrame(audioCapture_, frame.buffer, frame.bufferLen, &readlen);
+    if (ret != SUCCESS) {
+        MEDIA_ERR_LOG("audioCapture_::CaptureFrame failed:0x%x", ret);
+        return ERR_INVALID_READ;
+    }
+    ret = audioCapture_->GetCapturePosition(audioCapture_, &frame.frames, &frame.time);
+    if (ret != SUCCESS) {
+        MEDIA_ERR_LOG("audioCapture_::GetCapturePosition failed:0x%x", ret);
+        return ERR_INVALID_READ;
+    }
+    return readlen;
 }
 
 int32_t AudioSource::Stop()
 {
     MEDIA_INFO_LOG("AudioSource::Stop");
+    if (!started_) {
+        MEDIA_ERR_LOG("AudioSource not Start");
+        return ERR_ILLEGAL_STATE;
+    }
+    AUDIO_RETURN_VAL_IF_NULL(audioCapture_);
+    int32_t ret = audioCapture_->control.Stop(reinterpret_cast<AudioHandle>(audioCapture_));
+    if (ret != SUCCESS) {
+        MEDIA_ERR_LOG("Stop failed:0x%x", ret);
+        return ret;
+    }
+    started_ = false;
+    return SUCCESS;
+}
+
+int32_t AudioSource::Release()
+{
     int32_t ret;
     if ((ret = InitCheck()) != SUCCESS) {
         return ret;
     }
-
-    AUDIO_RETURN_VAL_IF_NULL(audioCapture_);
-    ret = audioCapture_->control.Stop(reinterpret_cast<AudioHandle>(audioCapture_));
-    if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("Stop failed 0x%x", ret);
-        return ret;
+    if (audioCapture_) {
+        audioAdapter_->DestroyCapture(audioAdapter_, audioCapture_);
+        audioCapture_ = nullptr;
     }
-    ret = audioAdapter_->DestroyCapture(audioAdapter_, audioCapture_);
-    audioCapture_ = nullptr;
-    started_ = false;
-    if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("Close failed 0x%x", ret);
-        return ret;
-    }
+    initialized_ = false;
+    MEDIA_INFO_LOG("AudioSource Released");
     return SUCCESS;
 }
 }  // namespace Audio
