@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "audiolite_test.h"
+#include "codec_type.h"
 #include "media_errors.h"
 
 using namespace std;
@@ -22,9 +23,9 @@ using namespace testing::ext;
 
 namespace OHOS {
 const int32_t BUFFER_SIZE = 1024;
-const int32_t SAMPLE_RATE = 44100;
+const int32_t SAMPLE_RATE = 24000;
 const int32_t BIT_RATE = 1024;
-const int32_t CHANNEL_COUNT = 1;
+const int32_t CHANNEL_COUNT = 2;
 
 void AudioliteTest::SetUpTestCase(void) {}
 
@@ -47,62 +48,29 @@ void AudioliteTest::TearDown() {}
  * SubFunction: NA
  * FunctionPoints: NA
  * EnvConditions: NA
- * CaseDescription: Audio Capture Start() Test
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 1; Bit_width 16; Sample Rate 8000; Bit Rate 8000
  */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_start_test_001, Level1)
+HWTEST_F(AudioliteTest, audio_buffer_001, TestSize.Level1)
 {
-    bool capatureStatus = false;
-    int64_t frameCount = -1;
-    int32_t retStatus = RET_FAILURE;
-    int32_t getStatus;
     AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 8000;
+    info.channelCount = 1;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
 
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    capatureStatus = audioCapturer->Start();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    frameCount = audioCapturer->GetFrameCount();
-    EXPECT_EQ(true, (frameCount > 0));
-    capatureStatus = audioCapturer->Release();
-    delete audioCapturer;
-}
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
 
-/*
- * Feature: Audiolite
- * Function: audioCapturer
- * SubFunction: NA
- * FunctionPoints: .
- * EnvConditions: NA
- * CaseDescription: Audio Capture Start() Test
- */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_start_test_002, Level1)
-{
-    bool capatureStatus = false;
-    int32_t retStatus = RET_FAILURE;
-    int32_t getStatus;
-    AudioCapturer *audioCapturer = new AudioCapturer();
-
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    capatureStatus = audioCapturer->Start();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    capatureStatus = audioCapturer->Stop();
-    EXPECT_EQ(true, capatureStatus);
-    capatureStatus = audioCapturer->Release();
-    EXPECT_EQ(true, capatureStatus);
-    capatureStatus = audioCapturer->Start();
-    EXPECT_EQ(false, capatureStatus);
-    capatureStatus = audioCapturer->Release();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
     delete audioCapturer;
 }
 
@@ -112,18 +80,27 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_start_test_002, Level1)
  * SubFunction: NA
  * FunctionPoints: NA
  * EnvConditions: NA
- * CaseDescription: Audio Capture Stop ()
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 1; Bit_width 16; Sample Rate 16000; Bit Rate 16000
  */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_stop_test_001, Level1)
+HWTEST_F(AudioliteTest, audio_buffer_002, TestSize.Level1)
 {
-    bool capatureStatus = true;
-    int32_t retStatus = RET_FAILURE;
     AudioCapturer *audioCapturer = new AudioCapturer();
-
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    capatureStatus = audioCapturer->Stop();
-    EXPECT_EQ(false, capatureStatus);
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 16000;
+    info.channelCount = 1;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
     delete audioCapturer;
 }
 
@@ -133,28 +110,27 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_stop_test_001, Level1)
  * SubFunction: NA
  * FunctionPoints: NA
  * EnvConditions: NA
- * CaseDescription: Audio Capture Stop ()
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 1; Bit_width 16; Sample Rate 32000; Bit Rate 32000
  */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_stop_test_002, Level1)
+HWTEST_F(AudioliteTest, audioCapturer_003, TestSize.Level1)
 {
-    bool capatureStatus = false;
-    int32_t retStatus = RET_FAILURE;
-    int32_t getStatus;
     AudioCapturer *audioCapturer = new AudioCapturer();
-
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    capatureStatus = audioCapturer->Start();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    capatureStatus = audioCapturer->Stop();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 2;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    capatureStatus = audioCapturer->Release();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 32000;
+    info.channelCount = 1;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
     delete audioCapturer;
 }
 
@@ -164,59 +140,27 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_stop_test_002, Level1)
  * SubFunction: NA
  * FunctionPoints: NA
  * EnvConditions: NA
- * CaseDescription: Audio Capture Release ()
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 1; Bit_width 16; Sample Rate 24000; Bit Rate 24000
  */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_release_test_001, Level1)
+HWTEST_F(AudioliteTest, audioCapturer_004, TestSize.Level1)
 {
-    bool capatureStatus = true;
-    int32_t retStatus = RET_FAILURE;
     AudioCapturer *audioCapturer = new AudioCapturer();
-
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    capatureStatus = audioCapturer->Release();
-    EXPECT_EQ(false, capatureStatus);
-    delete audioCapturer;
-}
-
-/*
- * Feature: Audiolite
- * Function: audioCapturer
- * SubFunction: NA
- * FunctionPoints: .
- * EnvConditions: NA
- * CaseDescription: Audio Capture Release ()
- */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_release_test_002, Level1)
-{
-    bool capatureStatus = false;
-    int32_t retStatus = RET_FAILURE;
-    int32_t getStatus;
-    AudioCapturer *audioCapturer = new AudioCapturer();
-
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    getStatus = 0;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    capatureStatus = audioCapturer->Start();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    sleep(5);
-    capatureStatus = audioCapturer->Stop();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 2;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    sleep(5);
-    capatureStatus = audioCapturer->Release();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 3;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    sleep(5);
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 24000;
+    info.channelCount = 1;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
     delete audioCapturer;
 }
 
@@ -226,33 +170,27 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_release_test_002, Level1)
  * SubFunction: NA
  * FunctionPoints: NA
  * EnvConditions: NA
- * CaseDescription: Audio Capture Status ()
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 1; Bit_width 16; Sample Rate 48000; Bit Rate 48000
  */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_status_test_001, Level1)
+HWTEST_F(AudioliteTest, audioCapturer_005, TestSize.Level1)
 {
-    bool capatureStatus = false;
-    int32_t retStatus = RET_FAILURE;
-    int32_t getStatus;
     AudioCapturer *audioCapturer = new AudioCapturer();
-
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    getStatus = 0;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    capatureStatus = audioCapturer->Start();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
-    sleep(1);
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    capatureStatus = audioCapturer->Stop();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 2;
-    sleep(1);
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    capatureStatus = audioCapturer->Release();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 48000;
+    info.channelCount = 1;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
     delete audioCapturer;
 }
 
@@ -262,19 +200,27 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_status_test_001, Level1)
  * SubFunction: NA
  * FunctionPoints: NA
  * EnvConditions: NA
- * CaseDescription: Audio Capture Status ()
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 2; Bit_width 16; Sample Rate 8000; Bit Rate 8000
  */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_status_test_002, Level1)
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_006, Level1)
 {
-    int32_t retStatus = RET_FAILURE;
-    int32_t getStatus;
     AudioCapturer *audioCapturer = new AudioCapturer();
-
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    getStatus = 2;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_NE(getStatus, retStatus);
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 8000;
+    info.channelCount = 2;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
     delete audioCapturer;
 }
 
@@ -284,100 +230,2218 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_status_test_002, Level1)
  * SubFunction: NA
  * FunctionPoints: NA
  * EnvConditions: NA
- * CaseDescription: Audio Capture read() Test
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 2; Bit_width 16; Sample Rate 16000; Bit Rate 16000
  */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_read_test_001, Level1)
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_007, Level1)
 {
-    bool capatureStatus = false;
-    bool isBlocking = true;
-    int64_t frameCount = -1;
-    int32_t retStatus = RET_FAILURE;
-    int32_t getStatus;
-    int32_t size = 2 * BUFFER_SIZE;
-    uint8_t buffer[size];
-    uint8_t *bufPtr = NULL;
-    size_t userSize, readSize = 0;
     AudioCapturer *audioCapturer = new AudioCapturer();
-
-    bufPtr = buffer;
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    capatureStatus = audioCapturer->Start();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    frameCount = audioCapturer->GetFrameCount();
-    EXPECT_EQ(true, (frameCount > 0));
-    userSize = frameCount * audioCapInfo.channelCount * audioCapInfo.sampleRate;
-    readSize = audioCapturer->Read(bufPtr, userSize, isBlocking);
-    EXPECT_EQ(true, (readSize > 0));
-    capatureStatus = audioCapturer->Release();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 16000;
+    info.channelCount = 2;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
     delete audioCapturer;
 }
 
- /*
+/*
  * Feature: Audiolite
  * Function: audioCapturer
  * SubFunction: NA
- * FunctionPoints: .
+ * FunctionPoints: NA
  * EnvConditions: NA
- * CaseDescription: Audio Capture GetMinFrameCount() Test
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 2; Bit_width 16; Sample Rate 32000; Bit Rate 32000
  */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_GetMinFrameCount_test_001, Level1)
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_008, Level1)
 {
-    bool capatureStatus = false;
-    size_t frameCount = -1;
-    int32_t retStatus = RET_FAILURE;
-    int32_t getStatus;
     AudioCapturer *audioCapturer = new AudioCapturer();
-
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    capatureStatus = audioCapturer->Start();
-    EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    sleep(1);
-    frameCount = audioCapturer->GetFrameCount();
-    EXPECT_EQ(true, (frameCount > 0));
-    capatureStatus = audioCapturer->GetMinFrameCount(audioCapInfo.sampleRate,
-                                    audioCapInfo.channelCount, audioCapInfo.audioFormat, frameCount);
-    EXPECT_EQ(true, capatureStatus);
-    capatureStatus = audioCapturer->Release();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 32000;
+    info.channelCount = 2;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
     delete audioCapturer;
 }
 
- /*
+/*
  * Feature: Audiolite
  * Function: audioCapturer
  * SubFunction: NA
- * FunctionPoints: .
+ * FunctionPoints: NA
  * EnvConditions: NA
- * CaseDescription: Audio Capture GetAudioTime() Test
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 2; Bit_width 16; Sample Rate 24000; Bit Rate 24000
  */
-HWTEST_F(AudioliteTest, audio_lite_audioCapturer_GetAudioTime_test_001, Level1)
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_009, Level1)
 {
-    bool capatureStatus = false;
-    int32_t retStatus = RET_FAILURE;
-    int32_t getStatus;
-    Timestamp timeStamp;
-    Timestamp::Timebase base = Timestamp::Timebase::MONOTONIC;
     AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 24000;
+    info.channelCount = 2;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
 
-    retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
-    EXPECT_EQ(RET_SUCCESS, retStatus);
-    capatureStatus = audioCapturer->Start();
-    EXPECT_EQ(true, capatureStatus);
-    sleep(2);
-    getStatus = 1;
-    retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(getStatus, retStatus);
-    capatureStatus = audioCapturer->GetAudioTime(timeStamp, base);
-    EXPECT_EQ(true, capatureStatus);
-    capatureStatus = audioCapturer->Release();
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 2; Bit_width 16; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_010, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 48000;
+    info.channelCount = 2;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 2; Bit_width 8; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_011, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 8000;
+    info.channelCount = 2;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 2; Bit_width 8; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_012, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 16000;
+    info.channelCount = 2;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 2; Bit_width 8; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_013, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 32000;
+    info.channelCount = 2;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 2; Bit_width 8; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_014, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 24000;
+    info.channelCount = 2;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 2; Bit_width 8; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_015, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 48000;
+    info.channelCount = 2;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 1; Bit_width 8; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_016, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 8000;
+    info.channelCount = 1;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 1; Bit_width 8; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_017, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 16000;
+    info.channelCount = 1;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 1; Bit_width 8; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_018, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 32000;
+    info.channelCount = 1;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 1; Bit_width 8; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_019, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 24000;
+    info.channelCount = 1;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format DEFAULT; Channel 1; Bit_width 8; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_020, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AUDIO_DEFAULT;
+    info.sampleRate = 48000;
+    info.channelCount = 1;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 1; Bit_width 16; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_021, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 8000;
+    info.channelCount = 1;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 1; Bit_width 16; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_022, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 16000;
+    info.channelCount = 1;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 1; Bit_width 16; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_023, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 32000;
+    info.channelCount = 1;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 1; Bit_width 16; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_024, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 24000;
+    info.channelCount = 1;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 1; Bit_width 16; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_025, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 48000;
+    info.channelCount = 1;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 2; Bit_width 16; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_026, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 8000;
+    info.channelCount = 2;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 2; Bit_width 16; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_027, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 16000;
+    info.channelCount = 2;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 2; Bit_width 16; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_028, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 32000;
+    info.channelCount = 2;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 2; Bit_width 16; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_029, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 24000;
+    info.channelCount = 2;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 2; Bit_width 16; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_030, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 48000;
+    info.channelCount = 2;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 2; Bit_width 8; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_031, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 8000;
+    info.channelCount = 2;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 2; Bit_width 8; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_032, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 16000;
+    info.channelCount = 2;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 2; Bit_width 8; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_033, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 32000;
+    info.channelCount = 2;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 2; Bit_width 8; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_034, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 24000;
+    info.channelCount = 2;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 2; Bit_width 8; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_035, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 48000;
+    info.channelCount = 2;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 1; Bit_width 8; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_036, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 8000;
+    info.channelCount = 1;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 1; Bit_width 8; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_037, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 16000;
+    info.channelCount = 1;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 1; Bit_width 8; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_038, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 32000;
+    info.channelCount = 1;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 1; Bit_width 8; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_039, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 24000;
+    info.channelCount = 1;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LC; Channel 1; Bit_width 8; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_040, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LC;
+    info.sampleRate = 48000;
+    info.channelCount = 1;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 1; Bit_width 16; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_041, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 8000;
+    info.channelCount = 1;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 1; Bit_width 16; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_042, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 16000;
+    info.channelCount = 1;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 1; Bit_width 16; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_043, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 32000;
+    info.channelCount = 1;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 1; Bit_width 16; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_044, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 24000;
+    info.channelCount = 1;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 1; Bit_width 16; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_045, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 48000;
+    info.channelCount = 1;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 2; Bit_width 16; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_046, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 8000;
+    info.channelCount = 2;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 2; Bit_width 16; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_047, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 16000;
+    info.channelCount = 2;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 2; Bit_width 16; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_048, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 32000;
+    info.channelCount = 2;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 2; Bit_width 16; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_049, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 24000;
+    info.channelCount = 2;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 2; Bit_width 16; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_050, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 48000;
+    info.channelCount = 2;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 2; Bit_width 8; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_051, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 8000;
+    info.channelCount = 2;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 2; Bit_width 8; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_052, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 16000;
+    info.channelCount = 2;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 2; Bit_width 8; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_053, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 32000;
+    info.channelCount = 2;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 2; Bit_width 8; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_054, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 24000;
+    info.channelCount = 2;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 2; Bit_width 8; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_055, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 48000;
+    info.channelCount = 2;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 1; Bit_width 8; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_056, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 8000;
+    info.channelCount = 1;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 1; Bit_width 8; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_057, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 16000;
+    info.channelCount = 1;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 1; Bit_width 8; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_058, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 32000;
+    info.channelCount = 1;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 1; Bit_width 8; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_059, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 24000;
+    info.channelCount = 1;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_HE_V1; Channel 1; Bit_width 8; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_060, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_HE_V1;
+    info.sampleRate = 48000;
+    info.channelCount = 1;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 1; Bit_width 16; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_061, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 8000;
+    info.channelCount = 1;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 1; Bit_width 16; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_062, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 16000;
+    info.channelCount = 1;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 1; Bit_width 16; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_063, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 32000;
+    info.channelCount = 1;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 1; Bit_width 16; Sample Rate 24000; Bit Rate 24000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_064, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 24000;
+    info.channelCount = 1;
+    info.bitRate = 24000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 1; Bit_width 16; Sample Rate 48000; Bit Rate 48000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_065, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 48000;
+    info.channelCount = 1;
+    info.bitRate = 48000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 2; Bit_width 24; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_066, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 8000;
+    info.channelCount = 2;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_24;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 2; Bit_width 24; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_067, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 16000;
+    info.channelCount = 2;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_24;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 2; Bit_width 24; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_068, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 32000;
+    info.channelCount = 2;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_24;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 2; Bit_width 24; Sample Rate 64000; Bit Rate 64000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_069, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 64000;
+    info.channelCount = 2;
+    info.bitRate = 64000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_24;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 2; Bit_width 16; Sample Rate 96000; Bit Rate 96000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_070, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 96000;
+    info.channelCount = 2;
+    info.bitRate = 96000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_16;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 2; Bit_width 8; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_071, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 8000;
+    info.channelCount = 2;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 2; Bit_width 8; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_072, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 16000;
+    info.channelCount = 2;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 2; Bit_width 8; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_073, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 32000;
+    info.channelCount = 2;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 2; Bit_width 8; Sample Rate 64000; Bit Rate 64000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_074, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 64000;
+    info.channelCount = 2;
+    info.bitRate = 64000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 2; Bit_width 8; Sample Rate 96000; Bit Rate 96000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_075, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 96000;
+    info.channelCount = 2;
+    info.bitRate = 96000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_8;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 1; Bit_width 24; Sample Rate 8000; Bit Rate 8000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_076, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 8000;
+    info.channelCount = 1;
+    info.bitRate = 8000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_24;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 1; Bit_width 24; Sample Rate 16000; Bit Rate 16000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_077, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 16000;
+    info.channelCount = 1;
+    info.bitRate = 16000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_24;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 1; Bit_width 24; Sample Rate 32000; Bit Rate 32000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_078, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 32000;
+    info.channelCount = 1;
+    info.bitRate = 32000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_24;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 1; Bit_width 24; Sample Rate 64000; Bit Rate 64000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_079, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 64000;
+    info.channelCount = 1;
+    info.bitRate = 64000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_24;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
+    delete audioCapturer;
+}
+
+/*
+ * Feature: Audiolite
+ * Function: audioCapturer
+ * SubFunction: NA
+ * FunctionPoints: NA
+ * EnvConditions: NA
+ * CaseDescription: Audio Capture Test-Format AAC_LD; Channel 1; Bit_width 24; Sample Rate 96000; Bit Rate 96000
+ */
+HWTEST_F(AudioliteTest, audio_lite_audioCapturer_test_080, Level1)
+{
+    AudioCapturer *audioCapturer = new AudioCapturer();
+    AudioCapturerInfo info;
+    info.inputSource = AUDIO_MIC;
+    info.audioFormat = AAC_LD;
+    info.sampleRate = 96000;
+    info.channelCount = 1;
+    info.bitRate = 96000;
+    info.streamType = TYPE_MEDIA;
+    info.bitWidth = BIT_WIDTH_24;
+    uint64_t frameCnt = audioCapturer->GetFrameCount();
+    uint32_t framesize = static_cast<uint32_t>((frameCnt * info.channelCount * info.bitWidth) / sizeof(uint8_t));
+    uint8_t *buffer;
+    audioCapturer->SetCapturerInfo(info);
+    audioCapturer->Start();
+    audioCapturer->Read(buffer, framesize, false);
+    EXPECT_TRUE(sizeof(buffer) > 0);
+    audioCapturer->Release();
     delete audioCapturer;
 }
 } // namespace OHOS
-
