@@ -18,14 +18,15 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <time.h>
 #include <memory>
+#include <time.h>
 #include <vector>
 
+#include "audio_manager.h"
+#include "format.h"
 #include "media_errors.h"
 #include "media_info.h"
-#include "format.h"
-#include "audio_manager.h"
+
 
 namespace OHOS {
 namespace Audio {
@@ -40,6 +41,13 @@ struct AudioSourceConfig {
     bool interleaved;
     AudioBitWidth bitWidth = BIT_WIDTH_16;
     AudioStreamType streamUsage;
+};
+
+struct AudioFrame {
+    uint8_t *buffer;    /* the virtual address of stream */
+    uint32_t bufferLen;   /* stream lenth, by bytes */
+    struct AudioTimeStamp time;
+    uint64_t frames;
 };
 
 class AudioSource {
@@ -74,7 +82,7 @@ public:
     /**
      * 根据AudioSourceConfig 初始化当前source.
      */
-    int32_t Initialize(const AudioSourceConfig &input);
+    int32_t Initialize(const AudioSourceConfig &config);
 
     /**
     * 设置设备ID，需要切换设备时调用.
@@ -94,12 +102,17 @@ public:
     /**
     * 读取源数据，返回实际读取大小.
     */
-    int32_t ReadFrame(uint8_t *buffer, size_t bufferBytes, bool isBlockingRead);
+    int32_t ReadFrame(AudioFrame &frame, bool isBlockingRead);
 
     /**
     * 停止源.
     */
     int32_t Stop();
+
+    /**
+    * release.
+    */
+    int32_t Release();
 
 private:
     int32_t InitCheck();

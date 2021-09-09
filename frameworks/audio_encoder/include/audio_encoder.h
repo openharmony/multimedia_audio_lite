@@ -18,13 +18,15 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <time.h>
 #include <memory>
+#include <time.h>
 #include <vector>
+
+#include "codec_interface.h"
+#include "format.h"
 #include "media_errors.h"
 #include "media_info.h"
-#include "format.h"
-#include "codec_interface.h"
+
 namespace OHOS {
 namespace Audio {
 constexpr int32_t AUDIO_ENC_PARAM_NUM = 8;
@@ -88,10 +90,16 @@ public:
     */
     int32_t Stop();
 
+    /**
+    * release.
+    */
+    int32_t Release();
+
 private:
     int32_t InitAencAttr(const AudioEncodeConfig &input);
 
 private:
+    bool initialized_;
     CODEC_HANDLETYPE encHandle_;
     CodecType domainKind_ = AUDIO_ENCODER;
     AvCodecMime codecMime_ = MEDIA_MIMETYPE_AUDIO_AAC;
