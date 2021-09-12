@@ -44,9 +44,9 @@ struct AudioEncodeConfig {
 };
 
 struct AudioStream {
-    uint8_t *buffer;    /* the virtual address of stream */
-    uint32_t bufferLen;   /* stream lenth, by bytes */
-    int64_t timeStamp;
+    uint8_t *buffer = nullptr;    /* the virtual address of stream */
+    uint32_t bufferLen = 0;   /* stream lenth, by bytes */
+    int64_t timeStamp = 0;
 };
 
 class AudioEncoder {
@@ -130,7 +130,7 @@ private:
     uint32_t ptNumPerFrm_ = AUDIO_POINT_NUM;
     uint32_t bufSize_ = AUDIO_FRAME_NUM_IN_BUF;
     Param encAttr_[AUDIO_ENC_PARAM_NUM];
-    bool started_;
+    bool started_ = false;
 };
 }  // namespace Audio
 }  // namespace OHOS
