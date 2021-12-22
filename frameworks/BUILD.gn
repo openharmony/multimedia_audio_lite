@@ -16,6 +16,34 @@ import("//build/lite/ndk/ndk.gni")
 shared_library("audio_capturer_lite") {
   sources = [
     "audio_capturer.cpp",
+    "audio_capturer_client.cpp",
+  ]
+
+  cflags = [ "-fPIC" ]
+  cflags += [ "-Wall" ]
+  cflags_cc = cflags
+  include_dirs = [
+    "//foundation/multimedia/audio_lite/interfaces/kits",
+    "//foundation/multimedia/audio_lite/services/include",
+    "//foundation/multimedia/utils/lite/interfaces/kits",
+    "//foundation/multimedia/audio_lite/frameworks",
+    "//foundation/distributedschedule/samgr_lite/interfaces/kits/registry",
+    "//base/security/permission/interfaces/kits/permission_lite",
+    "//foundation/distributedschedule/samgr_lite/interfaces/kits/registry",
+    "//foundation/distributedschedule/samgr_lite/interfaces/kits/samgr",
+  ]
+
+  deps = [
+    "//base/security/permission/services/permission_lite/pms_client:pms_client",
+    "//foundation/communication/ipc_lite:liteipc_adapter",
+    "//foundation/graphic/surface:lite_surface",
+    "//foundation/multimedia/utils/lite:media_common",
+    "//third_party/bounds_checking_function:libsec_shared",
+  ]
+}
+
+shared_library("audio_capturer_impl") {
+  sources = [
     "audio_capturer_impl.cpp",
     "audio_encoder/audio_encoder.cpp",
     "audio_source/audio_source.cpp",
@@ -24,11 +52,14 @@ shared_library("audio_capturer_lite") {
   cflags += [ "-Wall" ]
   cflags_cc = cflags
   include_dirs = [
-    "audio_encoder/include",
-    "audio_source/include",
-    "//foundation/multimedia/utils/lite/hals",
+    "//foundation/multimedia/audio_lite/frameworks/audio_encoder/include",
+    "//foundation/multimedia/audio_lite/frameworks/audio_source/include",
+    "//foundation/multimedia/audio_lite/frameworks",
+    "//foundation/multimedia/audio_lite/interfaces/kits",
+    "//foundation/multimedia/audio_lite/services/include",
     "//drivers/peripheral/audio/interfaces/include",
     "//drivers/peripheral/codec/interfaces/include",
+    "//foundation/multimedia/utils/lite/interfaces/kits",
     "//drivers/peripheral/format/interfaces/include",
   ]
 
@@ -38,8 +69,10 @@ shared_library("audio_capturer_lite") {
     "-L$outdir",
     "-lcodec",
     "-laudio_hw",
+    "-lpthread",
   ]
   deps = [
+    "//device/hisilicon/hardware:hardware_media_sdk",
     "//foundation/graphic/surface:lite_surface",
     "//foundation/multimedia/utils/lite:media_common",
     "//third_party/bounds_checking_function:libsec_shared",
