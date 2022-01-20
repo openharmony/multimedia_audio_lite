@@ -61,7 +61,7 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_start_test_001, Level1)
     EXPECT_EQ(RET_SUCCESS, retStatus);
     capatureStatus = audioCapturer->Start();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
+    getStatus = 0x2; /* it should be RECORDING */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     frameCount = audioCapturer->GetFrameCount();
@@ -88,12 +88,12 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_start_test_002, Level1)
     retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
     EXPECT_EQ(RET_SUCCESS, retStatus);
     retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(RET_SUCCESS, retStatus);
+    EXPECT_EQ(0x1, retStatus); /* it should be PREPARED */
     retStatus = audioCapturer->GetStatus();
-    EXPECT_EQ(RET_SUCCESS, retStatus);
+    EXPECT_EQ(0x1, retStatus); /* it should be PREPARED */
     capatureStatus = audioCapturer->Start();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
+    getStatus = 0x2; /* it should be RECORDING */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     capatureStatus = audioCapturer->Stop();
@@ -146,12 +146,12 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_stop_test_002, Level1)
     EXPECT_EQ(RET_SUCCESS, retStatus);
     capatureStatus = audioCapturer->Start();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
+    getStatus = 0x2; /* it should be RECORDING */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     capatureStatus = audioCapturer->Stop();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 2;
+    getStatus = 0x3; /* it should be STOPPED */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     capatureStatus = audioCapturer->Release();
@@ -175,7 +175,7 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_release_test_001, Level1)
     retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
     EXPECT_EQ(RET_SUCCESS, retStatus);
     capatureStatus = audioCapturer->Release();
-    EXPECT_EQ(false, capatureStatus);
+    EXPECT_EQ(true, capatureStatus);
     delete audioCapturer;
 }
 
@@ -196,24 +196,24 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_release_test_002, Level1)
 
     retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
     EXPECT_EQ(RET_SUCCESS, retStatus);
-    getStatus = 0;
+    getStatus = 0x1; /* it should be PREPARED */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     capatureStatus = audioCapturer->Start();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
+    getStatus = 0x2; /* it should be RECORDING */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     sleep(5);
     capatureStatus = audioCapturer->Stop();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 2;
+    getStatus = 0x3; /* it should be STOPPED */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     sleep(5);
     capatureStatus = audioCapturer->Release();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 3;
+    getStatus = 0x4; /* it should be RELEASED */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     sleep(5);
@@ -237,18 +237,18 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_status_test_001, Level1)
 
     retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
     EXPECT_EQ(RET_SUCCESS, retStatus);
-    getStatus = 0;
+    getStatus = 0x1; /* it should be PREPARED */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     capatureStatus = audioCapturer->Start();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
+    getStatus = 0x2; /* it should be RECORDING */
     sleep(1);
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     capatureStatus = audioCapturer->Stop();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 2;
+    getStatus = 0x3; /* it should be STOPPED */
     sleep(1);
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
@@ -272,8 +272,8 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_status_test_002, Level1)
 
     retStatus = audioCapturer->SetCapturerInfo(audioCapInfo);
     EXPECT_EQ(RET_SUCCESS, retStatus);
-    getStatus = 2;
-    retStatus = audioCapturer->GetStatus();
+    getStatus = 0x2;
+    retStatus = audioCapturer->GetStatus(); /* it should be PREPARED */
     EXPECT_NE(getStatus, retStatus);
     delete audioCapturer;
 }
@@ -304,7 +304,7 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_read_test_001, Level1)
     EXPECT_EQ(RET_SUCCESS, retStatus);
     capatureStatus = audioCapturer->Start();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
+    getStatus = 0x2; /* it should be RECORDING */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     frameCount = audioCapturer->GetFrameCount();
@@ -336,7 +336,7 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_GetMinFrameCount_test_001, Leve
     EXPECT_EQ(RET_SUCCESS, retStatus);
     capatureStatus = audioCapturer->Start();
     EXPECT_EQ(true, capatureStatus);
-    getStatus = 1;
+    getStatus = 0x2; /* it should be RECORDING */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     sleep(1);
@@ -371,7 +371,7 @@ HWTEST_F(AudioliteTest, audio_lite_audioCapturer_GetAudioTime_test_001, Level1)
     capatureStatus = audioCapturer->Start();
     EXPECT_EQ(true, capatureStatus);
     sleep(2);
-    getStatus = 1;
+    getStatus = 0x2; /* it should be RECORDING */
     retStatus = audioCapturer->GetStatus();
     EXPECT_EQ(getStatus, retStatus);
     capatureStatus = audioCapturer->GetAudioTime(timeStamp, base);

@@ -20,24 +20,25 @@ group("lite_audio_test") {
 }
 
 if (ohos_build_type == "debug") {
-    unittest("lite_audio_unittest") {
+  unittest("lite_audio_unittest") {
     output_dir = "$root_out_dir/test/unittest/audiolite"
     sources = [ "unittest/audiolite_test.cpp" ]
     include_dirs = [
-    "//foundation/multimedia/audio_lite/frameworks/audio_encoder/include",
-    "//foundation/multimedia/audio_lite/frameworks/audio_source/include",
-    "//foundation/multimedia/audio_lite/interfaces/kits",
-    "//foundation/multimedia/utils/lite/include",
-    "//drivers/peripheral/audio/interfaces/include",
-    "//drivers/peripheral/codec/interfaces/include",
-    "//drivers/peripheral/format/interfaces/include",
-    "//foundation/multimedia/audio_lite/test/unittest",
+      "//foundation/multimedia/audio_lite/frameworks/audio_encoder/include",
+      "//foundation/multimedia/audio_lite/frameworks/audio_source/include",
+      "//foundation/multimedia/audio_lite/interfaces/kits",
+      "//foundation/multimedia/utils/lite/include",
+      "//drivers/peripheral/audio/interfaces/include",
+      "//drivers/peripheral/codec/interfaces/include",
+      "//drivers/peripheral/format/interfaces/include",
+      "//foundation/multimedia/audio_lite/test/unittest",
+      "//foundation/multimedia/utils/lite/interfaces/kits",
     ]
 
     deps = [
-    "//foundation/multimedia/audio_lite/frameworks:audio_capturer_lite",
-    "//foundation/multimedia/utils/lite:media_common",
-    "//third_party/bounds_checking_function:libsec_shared",
+      "//foundation/multimedia/audio_lite/frameworks:audio_capturer_lite",
+      "//foundation/multimedia/utils/lite:media_common",
+      "//third_party/bounds_checking_function:libsec_shared",
     ]
   }
 }

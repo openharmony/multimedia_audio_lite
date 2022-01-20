@@ -276,7 +276,7 @@ int32_t AudioEncoder::ReadStream(AudioStream &stream, bool isBlockingRead)
     } else {
         timeoutMs = 0;
     }
-    OutputInfo outInfo;
+    OutputInfo outInfo = {};
     CodecBufferInfo outBuf = {};
     outInfo.bufferCnt = 1;
     outInfo.buffers = &outBuf;
