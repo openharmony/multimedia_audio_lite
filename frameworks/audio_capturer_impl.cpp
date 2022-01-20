@@ -37,14 +37,14 @@ const unsigned long long TIME_CONVERSION_NS_US = 1000ULL;  /* ns  to us  */
         } \
     } while (0)
 
-AudioCapturer::AudioCapturerImpl::AudioCapturerImpl()
+AudioCapturerImpl::AudioCapturerImpl()
     :audioSource_(new(std::nothrow) AudioSource()),
      audioEncoder_(nullptr)
 {
     MEDIA_DEBUG_LOG("ctor");
 }
 
-AudioCapturer::AudioCapturerImpl::~AudioCapturerImpl()
+AudioCapturerImpl::~AudioCapturerImpl()
 {
     if (status_ != RELEASED) {
         Release();
@@ -52,12 +52,13 @@ AudioCapturer::AudioCapturerImpl::~AudioCapturerImpl()
     MEDIA_ERR_LOG("dtor");
 }
 
-bool AudioCapturer::AudioCapturerImpl::GetMinFrameCount(int32_t sampleRate, int32_t channelCount, AudioCodecFormat audioFormat, size_t &frameCount)
+bool AudioCapturerImpl::GetMinFrameCount(int32_t sampleRate, int32_t channelCount, AudioCodecFormat audioFormat,
+    size_t &frameCount)
 {
-    return AudioSource::GetMinFrameCount(sampleRate, channelCount, audioFormat, frameCount);;
+    return AudioSource::GetMinFrameCount(sampleRate, channelCount, audioFormat, frameCount);
 }
 
-uint64_t AudioCapturer::AudioCapturerImpl::GetFrameCount()
+uint64_t AudioCapturerImpl::GetFrameCount()
 {
     CHK_NULL_RETURN(audioSource_, 0);
     std::lock_guard<std::mutex> lock(mutex_);
@@ -68,13 +69,13 @@ uint64_t AudioCapturer::AudioCapturerImpl::GetFrameCount()
     return audioSource_->GetFrameCount();
 }
 
-State AudioCapturer::AudioCapturerImpl::GetStatus()
+State AudioCapturerImpl::GetStatus()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return status_;
 }
 
-bool AudioCapturer::AudioCapturerImpl::GetTimestamp(Timestamp &timestamp, Timestamp::Timebase base)
+bool AudioCapturerImpl::GetTimestamp(Timestamp &timestamp, Timestamp::Timebase base)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (status_ == RELEASED) {
@@ -85,7 +86,27 @@ bool AudioCapturer::AudioCapturerImpl::GetTimestamp(Timestamp &timestamp, Timest
     return true;
 }
 
-int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInfo info)
+static void FillSourceConfig(AudioSourceConfig &sourceConfig, const AudioCapturerInfo &info, uint32_t deviceId)
+{
+    sourceConfig.deviceId = deviceId;
+    sourceConfig.audioFormat = info.audioFormat;
+    sourceConfig.sampleRate = info.sampleRate;
+    sourceConfig.channelCount = info.channelCount;
+    sourceConfig.interleaved = false;
+    sourceConfig.bitWidth = info.bitWidth;
+    sourceConfig.streamUsage = info.streamType;
+}
+
+static void FillEncConfig(AudioEncodeConfig &encodeConfig, const AudioCapturerInfo &info)
+{
+    encodeConfig.audioFormat = info.audioFormat;
+    encodeConfig.bitRate = info.bitRate;
+    encodeConfig.sampleRate = info.sampleRate;
+    encodeConfig.channelCount = info.channelCount;
+    encodeConfig.bitWidth = info.bitWidth;
+}
+
+int32_t AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInfo info)
 {
     CHK_NULL_RETURN(audioSource_, ERROR);
     std::lock_guard<std::mutex> lock(mutex_);
@@ -101,13 +122,7 @@ int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInf
     }
     MEDIA_INFO_LOG("info.sampleRate:%d", info.sampleRate);
     AudioSourceConfig sourceConfig;
-    sourceConfig.deviceId = devices[0].deviceId;
-    sourceConfig.audioFormat = info.audioFormat;
-    sourceConfig.sampleRate = info.sampleRate;
-    sourceConfig.channelCount = info.channelCount;
-    sourceConfig.interleaved = false;
-    sourceConfig.bitWidth = info.bitWidth;
-    sourceConfig.streamUsage = info.streamType;
+    FillSourceConfig(sourceConfig, info, devices[0].deviceId);
     ret = audioSource_->Initialize(sourceConfig);
     if (ret != SUCCESS) {
         MEDIA_ERR_LOG("Initialize failed inputSource:%d", info.inputSource);
@@ -115,11 +130,7 @@ int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInf
     }
     if (info.audioFormat != PCM && info.audioFormat != AUDIO_DEFAULT) {
         AudioEncodeConfig encodeConfig;
-        encodeConfig.audioFormat = info.audioFormat;
-        encodeConfig.bitRate = info.bitRate;
-        encodeConfig.sampleRate = info.sampleRate;
-        encodeConfig.channelCount = info.channelCount;
-        encodeConfig.bitWidth = info.bitWidth;
+        FillEncConfig(encodeConfig, info);
         MEDIA_INFO_LOG("audioEncoder_ bitRate:%d", info.bitRate);
         std::unique_ptr<AudioEncoder> audioEncoder(new(std::nothrow) AudioEncoder());
         audioEncoder_ = std::move(audioEncoder);
@@ -140,8 +151,7 @@ int32_t AudioCapturer::AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInf
     return SUCCESS;
 }
 
-
-int32_t AudioCapturer::AudioCapturerImpl::GetCapturerInfo(AudioCapturerInfo &info)
+int32_t AudioCapturerImpl::GetCapturerInfo(AudioCapturerInfo &info)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (status_ == RELEASED) {
@@ -152,7 +162,7 @@ int32_t AudioCapturer::AudioCapturerImpl::GetCapturerInfo(AudioCapturerInfo &inf
     return SUCCESS;
 }
 
-bool AudioCapturer::AudioCapturerImpl::Record()
+bool AudioCapturerImpl::Record()
 {
     CHK_NULL_RETURN(audioSource_, false);
     std::lock_guard<std::mutex> lock(mutex_);
@@ -189,9 +199,9 @@ bool AudioCapturer::AudioCapturerImpl::Record()
     return true;
 }
 
-int32_t AudioCapturer::AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize, bool isBlockingRead)
+int32_t AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize, bool isBlockingRead)
 {
-    if (buffer == NULL || userSize == 0) {
+    if (buffer == nullptr || userSize == 0) {
         MEDIA_ERR_LOG("Invalid buffer:%p userSize:%u", buffer, userSize);
         return ERR_INVALID_READ;
     }
@@ -229,7 +239,7 @@ int32_t AudioCapturer::AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize,
     return readLen;
 }
 
-bool AudioCapturer::AudioCapturerImpl::StopInternal()
+bool AudioCapturerImpl::StopInternal()
 {
     CHK_NULL_RETURN(audioSource_, false);
     int32_t ret;
@@ -252,7 +262,7 @@ bool AudioCapturer::AudioCapturerImpl::StopInternal()
     return true;
 }
 
-bool AudioCapturer::AudioCapturerImpl::Stop()
+bool AudioCapturerImpl::Stop()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (status_ != RECORDING) {
@@ -262,7 +272,7 @@ bool AudioCapturer::AudioCapturerImpl::Stop()
     return StopInternal();
 }
 
-bool AudioCapturer::AudioCapturerImpl::Release()
+bool AudioCapturerImpl::Release()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (status_ == RELEASED) {
