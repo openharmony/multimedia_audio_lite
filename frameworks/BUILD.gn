@@ -22,6 +22,7 @@ shared_library("audio_capturer_lite") {
   ]
   cflags = [ "-fPIC" ]
   cflags += [ "-Wall" ]
+  cflags += [ "-Werror" ]
   cflags_cc = cflags
   include_dirs = [
     "audio_encoder/include",
