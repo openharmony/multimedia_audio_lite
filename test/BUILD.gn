@@ -21,6 +21,7 @@ group("lite_audio_test") {
 
 if (ohos_build_type == "debug") {
   unittest("lite_audio_unittest") {
+    output_extension = "bin"
     output_dir = "$root_out_dir/test/unittest/audiolite"
     sources = [ "unittest/audiolite_test.cpp" ]
     include_dirs = [
