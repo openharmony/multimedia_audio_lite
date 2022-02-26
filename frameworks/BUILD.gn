@@ -16,17 +16,13 @@ import("//build/lite/ndk/ndk.gni")
 shared_library("audio_capturer_lite") {
   sources = [
     "audio_capturer.cpp",
-    "audio_capturer_client.cpp",
+    "binder/audio_capturer_client.cpp",
   ]
 
-  cflags = [ "-fPIC" ]
-  cflags += [ "-Wall" ]
-  cflags_cc = cflags
   include_dirs = [
-    "//foundation/multimedia/audio_lite/interfaces/kits",
-    "//foundation/multimedia/audio_lite/services/include",
-    "//foundation/multimedia/utils/lite/interfaces/kits",
-    "//foundation/multimedia/audio_lite/frameworks",
+    "//foundation/multimedia/audio_lite/services/server/include",
+    "//foundation/multimedia/audio_lite/services/impl",
+    "//foundation/multimedia/audio_lite/frameworks/binder",
     "//foundation/distributedschedule/samgr_lite/interfaces/kits/registry",
     "//base/security/permission/interfaces/kits/permission_lite",
     "//foundation/distributedschedule/samgr_lite/interfaces/kits/registry",
@@ -37,49 +33,23 @@ shared_library("audio_capturer_lite") {
     "//base/security/permission/services/permission_lite/pms_client:pms_client",
     "//foundation/communication/ipc_lite:liteipc_adapter",
     "//foundation/graphic/surface:lite_surface",
+  ]
+
+  public_configs = [ ":audio_capturer_public_config" ]
+
+  public_deps = [
     "//foundation/multimedia/utils/lite:media_common",
     "//third_party/bounds_checking_function:libsec_shared",
   ]
 }
 
-shared_library("audio_capturer_impl") {
-  sources = [
-    "audio_capturer_impl.cpp",
-    "audio_encoder/audio_encoder.cpp",
-    "audio_source/audio_source.cpp",
+config("audio_capturer_public_config") {
+  include_dirs = [
+    "//foundation/multimedia/audio_lite/interfaces/kits",
+    "//foundation/multimedia/utils/lite/interfaces/kits",
   ]
+
   cflags = [ "-fPIC" ]
   cflags += [ "-Wall" ]
-  cflags += [ "-Werror" ]
   cflags_cc = cflags
-  include_dirs = [
-    "//foundation/multimedia/audio_lite/frameworks/audio_encoder/include",
-    "//foundation/multimedia/audio_lite/frameworks/audio_source/include",
-    "//foundation/multimedia/audio_lite/frameworks",
-    "//foundation/multimedia/audio_lite/interfaces/kits",
-    "//foundation/multimedia/audio_lite/services/include",
-    "//drivers/peripheral/audio/interfaces/include",
-    "//drivers/peripheral/codec/interfaces/include",
-    "//foundation/multimedia/utils/lite/interfaces/kits",
-    "//drivers/peripheral/format/interfaces/include",
-  ]
-
-  outdir = rebase_path("$root_out_dir")
-  public_configs = [ ":audio_external_library_config" ]
-  ldflags = [
-    "-L$outdir",
-    "-lcodec",
-    "-laudio_hw",
-    "-lpthread",
-  ]
-  deps = [
-    "//foundation/graphic/surface:lite_surface",
-    "//foundation/multimedia/utils/lite:media_common",
-    "//third_party/bounds_checking_function:libsec_shared",
-  ]
-}
-
-config("audio_external_library_config") {
-  include_dirs = [ "//foundation/multimedia/audio_lite/interfaces/kits" ]
-  include_dirs += [ "//foundation/multimedia/utils/lite/interfaces/kits" ]
 }
