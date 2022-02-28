@@ -14,7 +14,6 @@
  */
 
 #include "audio_capturer.h"
-#include "audio_capturer_impl.h"
 #include "audio_capturer_client.h"
 #include "media_log.h"
 
