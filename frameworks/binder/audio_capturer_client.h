@@ -52,6 +52,7 @@ private:
     bool InitAudioCapturerClient();
     IClientProxy *GetIClientProxy();
     int32_t InitSurface(void);
+    int32_t DeleteSurface(void);
     void ReleaseAllBuffer();
 
     SvcIdentity sid_;

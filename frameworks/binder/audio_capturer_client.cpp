@@ -116,6 +116,19 @@ int32_t AudioCapturer::AudioCapturerClient::InitSurface(void)
     return 0;
 }
 
+int32_t AudioCapturer::AudioCapturerClient::DeleteSurface(void)
+{
+    /* release all surface buffer */
+    if (surface_ == nullptr) {
+        return -1;
+    }
+    ReleaseAllBuffer();
+    surface_->UnregisterConsumerListener();
+    surface_.reset();
+    surface_ = nullptr;
+    return 0;
+}
+
 AudioCapturer::AudioCapturerClient::AudioCapturerClient()
 {
     OHOS_SystemInit();
@@ -182,9 +195,9 @@ AudioCapturer::AudioCapturerClient::~AudioCapturerClient()
     }
 
     /* release all surface buffer */
-    ReleaseAllBuffer();
-    surface_.reset();
-    surface_ = nullptr;
+    if (surface_ != nullptr) {
+        DeleteSurface();
+    }
     MEDIA_INFO_LOG("dector");
 }
 
@@ -265,7 +278,7 @@ int32_t AudioCapturer::AudioCapturerClient::GetCapturerInfo(AudioCapturerInfo &i
     IpcIo io;
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
-    CallBackPara para = {.funcId = AUD_CAP_FUNC_GET_INFO, .ret = MEDIA_IPC_FAILED};
+    CallBackPara para = {.funcId = AUD_CAP_FUNC_GET_INFO, .ret = MEDIA_IPC_FAILED, .data = &info};
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_GET_INFO, &io, &para, ProxyCallbackFunc);
     if (ret != 0) {
         MEDIA_ERR_LOG("GetCapturerInfo failed, ret=%d", ret);
@@ -315,6 +328,8 @@ bool AudioCapturer::AudioCapturerClient::Release()
         MEDIA_ERR_LOG("Release failed, ret=%d", ret);
         return ret;
     }
+
+    DeleteSurface();
     return para.ret;
 }
 
