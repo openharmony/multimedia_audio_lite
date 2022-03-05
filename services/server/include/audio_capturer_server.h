@@ -63,11 +63,11 @@ public:
 private:
     void GetMinFrameCount(IpcIo *req, IpcIo *reply);
     int32_t SetSurfaceProcess(Surface *surface);
+    void ReadAudioDataProcessExit(void);
     void SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo *reply);
     void GetInfo(AudioCapturerImpl *capturer, IpcIo *reply);
     void Start(AudioCapturerImpl *capturer, IpcIo *reply);
     void Stop(AudioCapturerImpl *capturer, IpcIo *reply);
-    void GetMiniFrameCount(IpcIo *req, IpcIo *reply);
     void GetFrameCount(AudioCapturerImpl *capturer, IpcIo *reply);
     void GetStatus(AudioCapturerImpl *capturer, IpcIo *reply);
     void SetSurface(IpcIo *req, IpcIo *reply);
