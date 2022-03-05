@@ -247,8 +247,8 @@ public:
     bool Release();
 
 private:
-    class AudioCapturerImpl;
-    std::unique_ptr<AudioCapturerImpl> impl_;
+    class AudioCapturerClient;
+    std::unique_ptr<AudioCapturerClient> impl_;
 };
 }  // namespace Audio
 }  // namespace OHOS

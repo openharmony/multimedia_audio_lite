@@ -31,7 +31,7 @@ enum AudioChannel {
 
 class AudioSource;
 class AudioEncoder;
-class AudioCapturer::AudioCapturerImpl {
+class AudioCapturerImpl {
 public:
     AudioCapturerImpl();
     virtual ~AudioCapturerImpl();
@@ -46,9 +46,10 @@ public:
     uint64_t GetFrameCount();
     State GetStatus();
     bool GetTimestamp(Timestamp &timestamp, Timestamp::Timebase base);
-    
+
 private:
     bool StopInternal();
+
     std::unique_ptr<AudioSource> audioSource_;
     std::unique_ptr<AudioEncoder> audioEncoder_;
     State status_ = INITIALIZED;
