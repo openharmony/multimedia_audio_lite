@@ -54,19 +54,29 @@ void AudioCapturerServer::AcceptServer(pid_t pid, IpcIo *reply)
     }
 }
 
+void AudioCapturerServer::ReadAudioDataProcessExit(void)
+{
+    MEDIA_INFO_LOG("ReadAudioDataProcessExit");
+    if (dataThreadId_ != 0) {
+        threadExit_ = true;
+        pthread_join(dataThreadId_, nullptr);
+        threadExit_ = false;
+        dataThreadId_ = 0;
+    }
+}
+
 void AudioCapturerServer::DropServer(pid_t pid, IpcIo *reply)
 {
     MEDIA_INFO_LOG("in");
     if (pid == clientPid_) {
-        if (dataThreadId_ != 0) {
-            threadExit_ = true;
-            pthread_join(dataThreadId_, nullptr);
-            threadExit_ = false;
-            dataThreadId_ = 0;
-        }
+        ReadAudioDataProcessExit();
         delete capturer_;
         capturer_ = nullptr;
         clientPid_ = -1;
+    }
+    if (surface_ != nullptr) {
+        delete surface_;
+        surface_ = nullptr;
     }
     IpcIoPushInt32(reply, MEDIA_OK);
 }
@@ -133,17 +143,6 @@ int32_t AudioCapturerServer::SetSurfaceProcess(Surface *surface)
     return 0;
 }
 
-void AudioCapturerServer::GetMinFrameCount(IpcIo *req, IpcIo *reply)
-{
-    int32_t sampleRate = IpcIoPopInt32(req);
-    int32_t channelCount = IpcIoPopInt32(req);
-    AudioCodecFormat audioFormat = (AudioCodecFormat)IpcIoPopInt32(req);
-    size_t frameCount;
-    bool ret = AudioCapturerImpl::GetMinFrameCount(sampleRate, channelCount, audioFormat, frameCount);
-    IpcIoPushInt32(reply, ret);
-    IpcIoPushUint32(reply, frameCount);
-}
-
 void AudioCapturerServer::SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo *reply)
 {
     AudioCapturerInfo info;
@@ -182,16 +181,11 @@ void AudioCapturerServer::Start(AudioCapturerImpl *capturer, IpcIo *reply)
 void AudioCapturerServer::Stop(AudioCapturerImpl *capturer, IpcIo *reply)
 {
     int32_t ret = capturer->Stop();
-    if (dataThreadId_ != 0) {
-        threadExit_ = true;
-        pthread_join(dataThreadId_, nullptr);
-        threadExit_ = false;
-        dataThreadId_ = 0;
-    }
+    ReadAudioDataProcessExit();
     IpcIoPushInt32(reply, ret);
 }
 
-void AudioCapturerServer::GetMiniFrameCount(IpcIo *req, IpcIo *reply)
+void AudioCapturerServer::GetMinFrameCount(IpcIo *req, IpcIo *reply)
 {
     uint32_t size = 0;
     int32_t sampleRate = IpcIoPopInt32(req);
@@ -229,6 +223,7 @@ void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo 
 {
     int32_t ret;
     if (funcId == AUD_CAP_FUNC_GET_MIN_FRAME_COUNT) {
+        GetMinFrameCount(req, reply);
         return;
     }
     if (funcId == AUD_CAP_FUNC_CONNECT) {
@@ -239,6 +234,7 @@ void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo 
     if (capturer == nullptr) {
         MEDIA_ERR_LOG("Cannot find client object.(pid=%d)", pid);
         IpcIoPushInt32(reply, MEDIA_IPC_FAILED);
+        return;
     }
     switch (funcId) {
         case AUD_CAP_FUNC_DISCONNECT:
@@ -264,13 +260,11 @@ void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo 
             break;
         case AUD_CAP_FUNC_RELEASE:
             ret = capturer->Release();
+            ReadAudioDataProcessExit();
             IpcIoPushInt32(reply, ret);
             break;
         case AUD_CAP_FUNC_SET_SURFACE:
             SetSurface(req, reply);
-            break;
-        case AUD_CAP_FUNC_GET_MIN_FRAME_COUNT:
-            GetMiniFrameCount(req, reply);
             break;
         default:
             break;
