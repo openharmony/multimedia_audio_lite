@@ -83,7 +83,7 @@ void AudioCapturerServer::DropServer(pid_t pid, IpcIo *reply)
 
 void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
 {
-    AudioCapturerServer *serverStore = (AudioCapturerServer *)serverStr;
+    AudioCapturerServer *serverStore = reinterpret_cast<AudioCapturerServer*>(serverStr);
     if (serverStore == nullptr || serverStore->surface_ == nullptr) {
         MEDIA_ERR_LOG("No available serverStore in surface.");
         return nullptr;
@@ -107,7 +107,7 @@ void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
         }
         /* Timestamp + audio data */
         /* read frame data, and reserve timestamp space */
-        int32_t readLen = serverStore->capturer_->Read((uint8_t *)buf + offSet, size - offSet, true);
+        int32_t readLen = serverStore->capturer_->Read(reinterpret_cast<uint8_t*>(buf) + offSet, size - offSet, true);
         if (readLen == ERR_INVALID_READ) {
             serverStore->surface_->CancelBuffer(surfaceBuf);
             usleep(20000); // indicates 20000 microseconds
@@ -122,7 +122,7 @@ void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
             serverStore->surface_->CancelBuffer(surfaceBuf);
             continue;
         }
-        (void)memcpy_s((uint8_t *)buf, sizeof(Timestamp), &timestamp, sizeof(Timestamp));
+        (void)memcpy_s(reinterpret_cast<uint8_t*>(buf), sizeof(Timestamp), &timestamp, sizeof(Timestamp));
         surfaceBuf->SetSize(sizeof(Timestamp) + readLen);
 
         // flush buffer

@@ -46,10 +46,11 @@ static BOOL Initialize(Service *service, Identity identity)
         return FALSE;
     }
 
-    AudioCapturerService *capturerSvc = (AudioCapturerService *)service;
+    AudioCapturerService *capturerSvc = reinterpret_cast<AudioCapturerService*>(service);
     capturerSvc->identity = identity;
-    MEDIA_DEBUG_LOG("Initialize(%s)! Identity<%d, %d, %d>", AUDIO_CAPTURER_SERVICE_NAME, identity.serviceId,
-                   identity.featureId, reinterpret_cast<void*>(&identity.queueId));
+    MEDIA_DEBUG_LOG("Initialize(%s)! Identity<%d, %d, %d>", 
+                    AUDIO_CAPTURER_SERVICE_NAME, identity.serviceId,
+                    identity.featureId, reinterpret_cast<void*>(&identity.queueId));
     return TRUE;
 }
 
@@ -60,8 +61,9 @@ static BOOL MessageHandle(Service *service, Request *msg)
         return FALSE;
     }
 
-    MEDIA_DEBUG_LOG("MessageHandle(%s)! Request<%d, %d, %p>", service->GetName(service), msg->msgId, msg->msgValue,
-                    msg->data);
+    MEDIA_DEBUG_LOG("MessageHandle(%s)! Request<%d, %d, %d>", service->GetName(service), 
+                    msg->msgId, msg->msgValue,
+                    reinterpret_cast<void*>(&msg->data));
     return FALSE;
 }
 
@@ -102,7 +104,7 @@ void AudioCapturerServiceReg()
         IPROXY_END,
     };
     MEDIA_INFO_LOG("Input AudioCapturerServiceReg");
-    bool ret = SAMGR_GetInstance()->RegisterService((Service *)&audioCapturerSvc);
+    bool ret = SAMGR_GetInstance()->RegisterService(reinterpret_cast<Service*>(&audioCapturerSvc));
     if (!ret) {
         MEDIA_ERR_LOG("AudioCapturer regist service failed.");
         return;
