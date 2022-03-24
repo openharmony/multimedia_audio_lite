@@ -252,7 +252,7 @@ State AudioCapturer::AudioCapturerClient::GetStatus()
 
     if (proxy_ == nullptr) {
         MEDIA_ERR_LOG("GetStatus failed, proxy_ value is nullptr");
-        return 0;
+        return (State)state;
     }
 
     uint32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_GET_STATUS, &io, &para, ProxyCallbackFunc);

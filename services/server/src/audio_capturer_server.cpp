@@ -101,7 +101,7 @@ void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
         void *buf = surfaceBuf->GetVirAddr();
         uint32_t offSet = sizeof(Timestamp);
         /* if offset more then size , will lead to overflow */
-        if (offset > size) {
+        if (offSet > size) {
             MEDIA_ERR_LOG("offSet more then serverStore , can be overflow");
             continue;
         }
