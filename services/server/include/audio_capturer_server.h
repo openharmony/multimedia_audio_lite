@@ -12,8 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AUDIO_CAPTURER_SERVER_H
-#define AUDIO_CAPTURER_SERVER_H
+
+#ifndef SERVICES_INCLUDE_AUDIO_CAPTURER_SERVER_H
+#define SERVICES_INCLUDE_AUDIO_CAPTURER_SERVER_H
 
 #include <mutex>
 #include <pthread.h>
@@ -84,4 +85,4 @@ private:
 void AudioCapturerServiceReg();
 }  // namespace Audio
 }  // namespace OHOS
-#endif // AUDIO_CAPTURER_SERVER_H
+#endif // SERVICES_INCLUDE_AUDIO_CAPTURER_SERVER_H

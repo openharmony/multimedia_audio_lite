@@ -223,7 +223,7 @@ int32_t AudioEncoder::Initialize(const AudioEncodeConfig &config)
 int32_t AudioEncoder::BindSource(uint32_t deviceId)
 {
     Param params[1];
-    memset_s(params, sizeof(params), 0x00, sizeof(params));
+    (void)memset_s(params, sizeof(params), 0x00, sizeof(params));
     params[0].key = KEY_DEVICE_ID;
     params[0].val = reinterpret_cast<void *>(&deviceId);
     params[0].size = sizeof(uint32_t);
@@ -237,11 +237,13 @@ int32_t AudioEncoder::BindSource(uint32_t deviceId)
 
 int32_t AudioEncoder::GetMute(bool &muted)
 {
+    (void)muted;
     return ERR_UNKNOWN;
 }
 
 int32_t AudioEncoder::SetMute(bool muted)
 {
+    (void)muted;
     return ERR_UNKNOWN;
 }
 
