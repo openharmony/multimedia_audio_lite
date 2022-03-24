@@ -52,7 +52,7 @@ AudioCapturer::AudioCapturerClient *AudioCapturer::AudioCapturerClient::GetInsta
 
 static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
 {
-    if (code != 0) {
+    if (code) {
         MEDIA_ERR_LOG("callback error, code = %d", code);
         return -1;
     }
@@ -61,7 +61,7 @@ static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
         return -1;
     }
 
-    CallBackPara* para = (CallBackPara*)owner;
+    CallBackPara* para = static_cast<CallBackPara*>(owner);
     AudioCapturerFuncId funcId = (AudioCapturerFuncId)para->funcId;
     para->ret = IpcIoPopInt32(reply);
     switch (funcId) {
@@ -74,26 +74,26 @@ static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
         case AUD_CAP_FUNC_SET_SURFACE:
             break;
         case AUD_CAP_FUNC_GET_FRAME_COUNT:
-            (*(uint64_t *)para->data) = IpcIoPopUint64(reply);
+            (*reinterpret_cast<uint64_t*>(para->data)) = IpcIoPopUint64(reply);
             break;
         case AUD_CAP_FUNC_GET_STATUS:
-            (*(uint32_t *)para->data) = IpcIoPopUint32(reply);
+            (*reinterpret_cast<uint32_t*>(para->data)) = IpcIoPopUint32(reply);
             break;
         case AUD_CAP_FUNC_GET_INFO: {
             uint32_t size = 0;
             void *bufferAdd = IpcIoPopFlatObj(reply, &size);
-            if (bufferAdd == nullptr || size == 0) {
+            if (bufferAdd == nullptr || !size) {
                 MEDIA_INFO_LOG("IpcIoPopFlatObj info failed");
                 return -1;
             }
-            memcpy_s(para->data, sizeof(AudioCapturerInfo), bufferAdd, size);
+            (void)memcpy_s(para->data, sizeof(AudioCapturerInfo), bufferAdd, size);
             break;
         }
         case AUD_CAP_FUNC_GET_MIN_FRAME_COUNT:
-            (*(uint32_t *)para->data) = IpcIoPopUint32(reply);
+            (*reinterpret_cast<uint32_t*>(para->data)) = IpcIoPopUint32(reply);
             break;
         default :
-            MEDIA_INFO_LOG("Callback, unkown funcId = %d", para->funcId);
+            MEDIA_INFO_LOG("Callback, unknown funcId = %d", para->funcId);
             break;
     }
     return 0;
@@ -136,7 +136,7 @@ AudioCapturer::AudioCapturerClient::AudioCapturerClient()
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IUnknown *iUnknown = SAMGR_GetInstance()->GetDefaultFeatureApi(AUDIO_CAPTURER_SERVICE_NAME);
     if (iUnknown == nullptr) {
-        MEDIA_ERR_LOG("iUnknown is NULL");
+        MEDIA_ERR_LOG("iUnknown is nullptr");
         throw runtime_error("Ipc proxy GetDefaultFeatureApi failed.");
     }
 
@@ -149,7 +149,7 @@ AudioCapturer::AudioCapturerClient::AudioCapturerClient()
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_CONNECT, .ret = MEDIA_IPC_FAILED, .data = this};
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_CONNECT, nullptr, &para, ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("Connect audio capturer server failed, ret=%d", ret);
         throw runtime_error("Ipc proxy Invoke failed.");
     }
@@ -163,7 +163,7 @@ AudioCapturer::AudioCapturerClient::AudioCapturerClient()
     dynamic_cast<SurfaceImpl *>(surface_.get())->WriteIoIpcIo(io);
     para = {.funcId = AUD_CAP_FUNC_SET_SURFACE, .ret = MEDIA_IPC_FAILED, .data = this};
     ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_SET_SURFACE, &io, &para, ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("Connect audio capturer set surface failed, ret=%d", ret);
         throw runtime_error("Ipc proxy Invoke failed.");
     }
@@ -190,7 +190,7 @@ AudioCapturer::AudioCapturerClient::~AudioCapturerClient()
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_DISCONNECT, .ret = MEDIA_IPC_FAILED};
     uint32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_DISCONNECT, &io, &para, ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("Disconnect audioCapturer server failed, ret=%d", ret);
     }
 
@@ -214,11 +214,11 @@ bool AudioCapturer::AudioCapturerClient::GetMinFrameCount(int32_t sampleRate, in
     CallBackPara para = {.funcId = AUD_CAP_FUNC_GET_MIN_FRAME_COUNT, .ret = MEDIA_IPC_FAILED, .data = &frameCount};
     uint32_t ret = client->proxy_->Invoke(client->proxy_, AUD_CAP_FUNC_GET_MIN_FRAME_COUNT, &io, &para,
                                         ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("GetMinFrameCount failed, ret=%d", ret);
         return false;
     }
-    return (para.ret == 0) ? true : false;
+    return (!para.ret) ? true : false;
 }
 
 uint64_t AudioCapturer::AudioCapturerClient::GetFrameCount()
@@ -228,8 +228,14 @@ uint64_t AudioCapturer::AudioCapturerClient::GetFrameCount()
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_GET_FRAME_COUNT, .ret = MEDIA_IPC_FAILED, .data = &frameCount};
+
+    if (proxy_ == nullptr) {
+        MEDIA_ERR_LOG("GetFrameCount failed, proxy_ value is nullptr");
+        return 0;
+    }
+
     uint32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_GET_FRAME_COUNT, &io, &para, ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("GetFrameCount failed, ret=%d", ret);
     }
 
@@ -243,8 +249,14 @@ State AudioCapturer::AudioCapturerClient::GetStatus()
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_GET_STATUS, .ret = MEDIA_IPC_FAILED, .data = &state};
+
+    if (proxy_ == nullptr) {
+        MEDIA_ERR_LOG("GetStatus failed, proxy_ value is nullptr");
+        return (State)state;
+    }
+
     uint32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_GET_STATUS, &io, &para, ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("GetStatus failed, ret=%d", ret);
     }
 
@@ -263,10 +275,15 @@ int32_t AudioCapturer::AudioCapturerClient::SetCapturerInfo(const AudioCapturerI
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     IpcIoPushFlatObj(&io, &info, sizeof(info));
-
     CallBackPara para = {.funcId = AUD_CAP_FUNC_SET_INFO, .ret = MEDIA_IPC_FAILED};
+
+    if (proxy_ == nullptr) {
+        MEDIA_ERR_LOG("SetCapturerInfo failed, proxy_ value is nullptr");
+        return 0;
+    }
+
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_SET_INFO, &io, &para, ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("SetCapturerInfo failed, ret=%d", ret);
         return ret;
     }
@@ -279,8 +296,14 @@ int32_t AudioCapturer::AudioCapturerClient::GetCapturerInfo(AudioCapturerInfo &i
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_GET_INFO, .ret = MEDIA_IPC_FAILED, .data = &info};
+
+    if (proxy_ == nullptr) {
+        MEDIA_ERR_LOG("GetCapturerInfo failed, proxy_ value is nullptr");
+        return 0;
+    }
+
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_GET_INFO, &io, &para, ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("GetCapturerInfo failed, ret=%d", ret);
         return ret;
     }
@@ -293,8 +316,14 @@ bool AudioCapturer::AudioCapturerClient::Start()
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_START, .ret = MEDIA_IPC_FAILED};
+    
+    if (proxy_ == nullptr) {
+        MEDIA_ERR_LOG("Start failed, proxy_ value is nullptr");
+        return false;
+    }
+    
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_START, &io, &para, ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("Start failed, ret=%d", ret);
         return ret;
     }
@@ -308,8 +337,14 @@ bool AudioCapturer::AudioCapturerClient::Stop()
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_STOP, .ret = MEDIA_IPC_FAILED};
+    
+    if (proxy_ == nullptr) {
+        MEDIA_ERR_LOG("Stop failed, proxy_ value is nullptr");
+        return false;
+    }
+
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_STOP, &io, &para, ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("Stop failed, ret=%d", ret);
         return ret;
     }
@@ -323,8 +358,14 @@ bool AudioCapturer::AudioCapturerClient::Release()
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_RELEASE, .ret = MEDIA_IPC_FAILED};
+    
+    if (proxy_ == nullptr) {
+        MEDIA_ERR_LOG("Release failed, proxy_ value is nullptr");
+        return false;
+    }
+
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_RELEASE, &io, &para, ProxyCallbackFunc);
-    if (ret != 0) {
+    if (ret) {
         MEDIA_ERR_LOG("Release failed, ret=%d", ret);
         return ret;
     }
@@ -335,7 +376,7 @@ bool AudioCapturer::AudioCapturerClient::Release()
 
 int32_t AudioCapturer::AudioCapturerClient::Read(uint8_t *buffer, size_t userSize, bool isBlockingRead)
 {
-    if (buffer == NULL || userSize == 0) {
+    if (buffer == nullptr || !userSize) {
         return ERR_INVALID_READ;
     }
     int32_t readLen = ERR_INVALID_READ;
@@ -358,8 +399,8 @@ int32_t AudioCapturer::AudioCapturerClient::Read(uint8_t *buffer, size_t userSiz
             break;
         }
 
-        memcpy_s(buffer, userSize, buf + sizeof(Timestamp), dataSize - sizeof(Timestamp));
-        memcpy_s(&curTimestamp_, sizeof(Timestamp), buf, sizeof(Timestamp));
+        (void)memcpy_s(buffer, userSize, buf + sizeof(Timestamp), dataSize - sizeof(Timestamp));
+        (void)memcpy_s(&curTimestamp_, sizeof(Timestamp), buf, sizeof(Timestamp));
         timeStampValid_ = true;
 
         surface_->ReleaseBuffer(surfaceBuf);
@@ -373,7 +414,7 @@ int32_t AudioCapturer::AudioCapturerClient::Read(uint8_t *buffer, size_t userSiz
 void AudioCapturer::AudioCapturerClient::OnBufferAvailable()
 {
     if (surface_ == nullptr) {
-        MEDIA_ERR_LOG("surface is NULL");
+        MEDIA_ERR_LOG("OnBufferAvailable failed, surface_ is nullptr");
         return;
     }
 }

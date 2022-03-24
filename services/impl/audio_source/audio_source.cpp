@@ -38,7 +38,7 @@ AudioSource::AudioSource()
 {
     if (g_audioManager == nullptr) {
         g_audioManager = GetAudioManagerFuncs();
-        MEDIA_DEBUG_LOG("g_audioManager:%p", g_audioManager);
+        MEDIA_DEBUG_LOG("g_audioManager:%d", reinterpret_cast<void*>(&g_audioManager));
     }
     int size = 0;
     struct AudioAdapterDescriptor *descs = nullptr;
@@ -49,17 +49,17 @@ AudioSource::AudioSource()
         struct AudioAdapterDescriptor *desc = &descs[index];
         for (int port = 0; (desc != nullptr && port < static_cast<int>(desc->portNum)); port++) {
             if (desc->ports[port].dir == PORT_IN &&
-                (g_audioManager->LoadAdapter(g_audioManager, desc, &audioAdapter_)) == 0) {
+                !(g_audioManager->LoadAdapter(g_audioManager, desc, &audioAdapter_))) {
                 (void)audioAdapter_->InitAllPorts(audioAdapter_);
                 if (memcpy_s(&capturePort_, sizeof(struct AudioPort),
-                    &desc->ports[port], sizeof(struct AudioPort)) != 0) {
+                    &desc->ports[port], sizeof(struct AudioPort))) {
                     MEDIA_WARNING_LOG("memcpy_s capturePort_ failed");
                 }
                 break;
             }
         }
     }
-    MEDIA_DEBUG_LOG("LoadAdapter audioAdapter_:%p", audioAdapter_);
+    MEDIA_DEBUG_LOG("LoadAdapter audioAdapter_:%d", reinterpret_cast<void*>(&audioAdapter_));
 }
 
 AudioSource::~AudioSource()
@@ -68,9 +68,14 @@ AudioSource::~AudioSource()
     if (initialized_) {
         Release();
     }
-
+    
     if (audioAdapter_ != nullptr) {
         MEDIA_INFO_LOG("UnloadModule audioAdapter_");
+        if (g_audioManager == nullptr) {
+            MEDIA_ERR_LOG("~AudioSource g_audioManager is nullptr");
+            audioAdapter_ = nullptr;
+            return;
+        }
         g_audioManager->UnloadAdapter(g_audioManager, audioAdapter_);
         audioAdapter_ = nullptr;
     }
@@ -190,7 +195,7 @@ int32_t AudioSource::Initialize(const AudioSourceConfig &config)
         MEDIA_ERR_LOG("not support bitWidth:%d, only support 16 bit width", config.bitWidth);
         return ERR_INVALID_PARAM;
     }
-    if (ConvertCodecFormatToAudioFormat(config.audioFormat, &(attrs.format)) == false) {
+    if (!ConvertCodecFormatToAudioFormat(config.audioFormat, &(attrs.format))) {
         MEDIA_ERR_LOG("not support audioFormat:%d", config.audioFormat);
         return ERR_INVALID_PARAM;
     }
@@ -208,6 +213,7 @@ int32_t AudioSource::Initialize(const AudioSourceConfig &config)
 
 int32_t AudioSource::SetInputDevice(uint32_t deviceId)
 {
+    (void)deviceId;
     return SUCCESS;
 }
 

@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef AUDIO_ENCODER_H_
-#define AUDIO_ENCODER_H_
+#ifndef FRAMEWORKS_AUDIO_ENCODER_INCLUDE_AUDIO_ENCODER_H_
+#define FRAMEWORKS_AUDIO_ENCODER_INCLUDE_AUDIO_ENCODER_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -45,7 +45,7 @@ struct AudioEncodeConfig {
 
 struct AudioStream {
     uint8_t *buffer = nullptr;    /* the virtual address of stream */
-    uint32_t bufferLen = 0;   /* stream lenth, by bytes */
+    uint32_t bufferLen = 0;   /* stream length, by bytes */
     int64_t timeStamp = 0;
 };
 
@@ -134,4 +134,5 @@ private:
 };
 }  // namespace Audio
 }  // namespace OHOS
-#endif  // AUDIO_ENCODER_H_
+
+#endif  // FRAMEWORKS_AUDIO_ENCODER_INCLUDE_AUDIO_ENCODER_H_

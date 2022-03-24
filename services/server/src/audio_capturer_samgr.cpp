@@ -41,17 +41,29 @@ static const char *GetName(Service *service)
 
 static BOOL Initialize(Service *service, Identity identity)
 {
-    AudioCapturerService *capturerSvc = (AudioCapturerService *)service;
+    if (service == nullptr) {
+        MEDIA_ERR_LOG("Initialize: service is nullptr");
+        return FALSE;
+    }
+
+    AudioCapturerService *capturerSvc = reinterpret_cast<AudioCapturerService*>(service);
     capturerSvc->identity = identity;
-    MEDIA_INFO_LOG("Initialize(%s)! Identity<%d, %d, %p>", AUDIO_CAPTURER_SERVICE_NAME, identity.serviceId,
-                   identity.featureId, identity.queueId);
+    MEDIA_DEBUG_LOG("Initialize(%s)! Identity<%d, %d, %d>",
+                    AUDIO_CAPTURER_SERVICE_NAME, identity.serviceId,
+                    identity.featureId, reinterpret_cast<void*>(&identity.queueId));
     return TRUE;
 }
 
 static BOOL MessageHandle(Service *service, Request *msg)
 {
-    MEDIA_DEBUG_LOG("MessageHandle(%s)! Request<%d, %d, %p>", service->GetName(service), msg->msgId, msg->msgValue,
-                    msg->data);
+    if (service == nullptr || msg == nullptr) {
+        MEDIA_ERR_LOG("MessageHandle: service or msg is nullptr");
+        return FALSE;
+    }
+
+    MEDIA_DEBUG_LOG("MessageHandle(%s)! Request<%d, %d, %d>", service->GetName(service),
+                    msg->msgId, msg->msgValue,
+                    reinterpret_cast<void*>(&msg->data));
     return FALSE;
 }
 
@@ -64,8 +76,18 @@ static TaskConfig GetTaskConfig(Service *service)
 
 static int32 Invoke(IServerProxy *iProxy, int funcId, void *origin, IpcIo *req, IpcIo *reply)
 {
+    if (origin == nullptr) {
+        MEDIA_ERR_LOG("Invoke: origin is nullptr");
+        return FALSE;
+    }
+
     pid_t pid = GetCallingPid(origin);
     AudioCapturerServer *mng = AudioCapturerServer::GetInstance();
+    if (mng == nullptr) {
+        MEDIA_ERR_LOG("Invoke failed, mng is nunnptr");
+        return FALSE;
+    }
+
     mng->Dispatch(funcId, pid, req, reply);
     return EC_SUCCESS;
 }
@@ -82,7 +104,7 @@ void AudioCapturerServiceReg()
         IPROXY_END,
     };
     MEDIA_INFO_LOG("Input AudioCapturerServiceReg");
-    bool ret = SAMGR_GetInstance()->RegisterService((Service *)&audioCapturerSvc);
+    bool ret = SAMGR_GetInstance()->RegisterService(reinterpret_cast<Service*>(&audioCapturerSvc));
     if (!ret) {
         MEDIA_ERR_LOG("AudioCapturer regist service failed.");
         return;
