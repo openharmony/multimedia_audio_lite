@@ -50,4 +50,5 @@ hb build audio_manager_lite
 
 [media\_lite](https://gitee.com/openharmony/multimedia_media_lite/blob/master/README_zh.md)
 
-**audio\_lite**
+[audio\_lite](https://gitee.com/openharmony/multimedia_audio_lite/blob/master/README_zh.md)
+
