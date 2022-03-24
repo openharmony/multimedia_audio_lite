@@ -38,7 +38,7 @@ AudioSource::AudioSource()
 {
     if (g_audioManager == nullptr) {
         g_audioManager = GetAudioManagerFuncs();
-        MEDIA_DEBUG_LOG("g_audioManager:%p", g_audioManager);
+        MEDIA_DEBUG_LOG("g_audioManager:%d", reinterpret_cast<void*>(&g_audioManager));
     }
     int size = 0;
     struct AudioAdapterDescriptor *descs = nullptr;
@@ -59,7 +59,7 @@ AudioSource::AudioSource()
             }
         }
     }
-    MEDIA_DEBUG_LOG("LoadAdapter audioAdapter_:%p", audioAdapter_);
+    MEDIA_DEBUG_LOG("LoadAdapter audioAdapter_:%d", reinterpret_cast<void*>(&audioAdapter_));
 }
 
 AudioSource::~AudioSource()

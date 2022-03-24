@@ -61,7 +61,7 @@ static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
         return -1;
     }
 
-    CallBackPara* para = (CallBackPara*)owner;
+    CallBackPara* para = reinterpret_cast<CallBackPara*>(owner);
     AudioCapturerFuncId funcId = (AudioCapturerFuncId)para->funcId;
     para->ret = IpcIoPopInt32(reply);
     switch (funcId) {
@@ -74,10 +74,10 @@ static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
         case AUD_CAP_FUNC_SET_SURFACE:
             break;
         case AUD_CAP_FUNC_GET_FRAME_COUNT:
-            (*(uint64_t *)para->data) = IpcIoPopUint64(reply);
+            (*reinterpret_cast<uint64_t*>(para->data)) = IpcIoPopUint64(reply);
             break;
         case AUD_CAP_FUNC_GET_STATUS:
-            (*(uint32_t *)para->data) = IpcIoPopUint32(reply);
+            (*reinterpret_cast<uint32_t*>(para->data)) = IpcIoPopUint32(reply);
             break;
         case AUD_CAP_FUNC_GET_INFO: {
             uint32_t size = 0;
@@ -90,7 +90,7 @@ static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
             break;
         }
         case AUD_CAP_FUNC_GET_MIN_FRAME_COUNT:
-            (*(uint32_t *)para->data) = IpcIoPopUint32(reply);
+            (*reinterpret_cast<uint32_t*>(para->data)) = IpcIoPopUint32(reply);
             break;
         default :
             MEDIA_INFO_LOG("Callback, unknown funcId = %d", para->funcId);
@@ -414,7 +414,7 @@ int32_t AudioCapturer::AudioCapturerClient::Read(uint8_t *buffer, size_t userSiz
 void AudioCapturer::AudioCapturerClient::OnBufferAvailable()
 {
     if (surface_ == nullptr) {
-        MEDIA_ERR_LOG("surface is nullptr");
+        MEDIA_ERR_LOG("OnBufferAvailable failed, surface_ is nullptr");
         return;
     }
 }
