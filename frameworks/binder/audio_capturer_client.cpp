@@ -61,7 +61,7 @@ static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
         return -1;
     }
 
-    CallBackPara* para = reinterpret_cast<CallBackPara*>(owner);
+    CallBackPara* para = static_cast<CallBackPara*>(owner);
     AudioCapturerFuncId funcId = (AudioCapturerFuncId)para->funcId;
     para->ret = IpcIoPopInt32(reply);
     switch (funcId) {
