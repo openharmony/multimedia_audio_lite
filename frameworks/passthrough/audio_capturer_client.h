@@ -12,8 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AUDIO_CAPTURER_THROUGH_H
-#define AUDIO_CAPTURER_THROUGH_H
+
+#ifndef FRAMEWORKS_AUDIO_CAPTURER_THROUGH_H
+#define FRAMEWORKS_AUDIO_CAPTURER_THROUGH_H
 
 #include <mutex>
 #include <sys/time.h>
@@ -46,4 +47,5 @@ private:
 };
 }  // namespace Audio
 }  // namespace OHOS
-#endif  // AUDIO_CAPTURER_THROUGH_H
+
+#endif  // FRAMEWORKS_AUDIO_CAPTURER_THROUGH_H

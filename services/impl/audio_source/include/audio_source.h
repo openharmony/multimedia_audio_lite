@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef AUDIO_SOURCE_H_
-#define AUDIO_SOURCE_H_
+#ifndef FRAMEWORKS_AUDIO_SOURCE_INCLUDE_AUDIO_SOURCE_H_
+#define FRAMEWORKS_AUDIO_SOURCE_INCLUDE_AUDIO_SOURCE_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -46,7 +46,7 @@ struct AudioSourceConfig {
 
 struct AudioFrame {
     uint8_t *buffer;    /* the virtual address of stream */
-    uint32_t bufferLen;   /* stream lenth, by bytes */
+    uint32_t bufferLen;   /* stream length, by bytes */
     struct AudioTimeStamp time;
     uint64_t frames;
 };
@@ -149,4 +149,4 @@ private:
 };
 }  // namespace Audio
 }  // namespace OHOS
-#endif  // AUDIO_SOURCE_H_
+#endif  // FRAMEWORKS_AUDIO_SOURCE_INCLUDE_AUDIO_SOURCE_H_

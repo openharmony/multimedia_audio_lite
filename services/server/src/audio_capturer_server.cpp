@@ -57,7 +57,7 @@ void AudioCapturerServer::AcceptServer(pid_t pid, IpcIo *reply)
 void AudioCapturerServer::ReadAudioDataProcessExit(void)
 {
     MEDIA_INFO_LOG("ReadAudioDataProcessExit");
-    if (dataThreadId_ != 0) {
+    if (dataThreadId_) {
         threadExit_ = true;
         pthread_join(dataThreadId_, nullptr);
         threadExit_ = false;
@@ -83,7 +83,7 @@ void AudioCapturerServer::DropServer(pid_t pid, IpcIo *reply)
 
 void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
 {
-    AudioCapturerServer *serverStore = (AudioCapturerServer *)serverStr;
+    AudioCapturerServer *serverStore = reinterpret_cast<AudioCapturerServer*>(serverStr);
     if (serverStore == nullptr || serverStore->surface_ == nullptr) {
         MEDIA_ERR_LOG("No available serverStore in surface.");
         return nullptr;
@@ -100,9 +100,14 @@ void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
         uint32_t size = serverStore->surface_->GetSize();
         void *buf = surfaceBuf->GetVirAddr();
         uint32_t offSet = sizeof(Timestamp);
+        /* if offset more then size , will lead to overflow */
+        if (offSet > size) {
+            MEDIA_ERR_LOG("offSet more then serverStore , can be overflow");
+            continue;
+        }
         /* Timestamp + audio data */
         /* read frame data, and reserve timestamp space */
-        int32_t readLen = serverStore->capturer_->Read((uint8_t *)buf + offSet, size - offSet, true);
+        int32_t readLen = serverStore->capturer_->Read(reinterpret_cast<uint8_t*>(buf) + offSet, size - offSet, true);
         if (readLen == ERR_INVALID_READ) {
             serverStore->surface_->CancelBuffer(surfaceBuf);
             usleep(20000); // indicates 20000 microseconds
@@ -117,11 +122,11 @@ void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
             serverStore->surface_->CancelBuffer(surfaceBuf);
             continue;
         }
-        memcpy_s((uint8_t *)buf, sizeof(Timestamp), &timestamp, sizeof(Timestamp));
+        (void)memcpy_s(reinterpret_cast<uint8_t*>(buf), sizeof(Timestamp), &timestamp, sizeof(Timestamp));
         surfaceBuf->SetSize(sizeof(Timestamp) + readLen);
 
         // flush buffer
-        if (serverStore->surface_->FlushBuffer(surfaceBuf) != 0) {
+        if (serverStore->surface_->FlushBuffer(surfaceBuf)) {
             MEDIA_ERR_LOG("Flush surface buffer failed.");
             serverStore->surface_->CancelBuffer(surfaceBuf);
             ret = MEDIA_ERR;
@@ -149,18 +154,23 @@ void AudioCapturerServer::SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo
     uint32_t size = 0;
     void *bufferAdd = IpcIoPopFlatObj(req, &size);
 
-    if (bufferAdd == nullptr || size == 0) {
+    if (bufferAdd == nullptr || !size) {
         MEDIA_INFO_LOG("IpcIoPopFlatObj info failed");
         IpcIoPushInt32(reply, -1);
         return;
     }
-    memcpy_s(&info, sizeof(AudioCapturerInfo), bufferAdd, size);
+    (void)memcpy_s(&info, sizeof(AudioCapturerInfo), bufferAdd, size);
     int32_t ret = capturer->SetCapturerInfo(info);
     IpcIoPushInt32(reply, ret);
 }
 
 void AudioCapturerServer::GetInfo(AudioCapturerImpl *capturer, IpcIo *reply)
 {
+    if (capturer == nullptr) {
+        MEDIA_ERR_LOG("GetInfo faild, capturer value is nullptr");
+        return;
+    }
+
     AudioCapturerInfo info;
     int32_t ret = capturer->GetCapturerInfo(info);
     IpcIoPushInt32(reply, ret);
@@ -169,6 +179,11 @@ void AudioCapturerServer::GetInfo(AudioCapturerImpl *capturer, IpcIo *reply)
 
 void AudioCapturerServer::Start(AudioCapturerImpl *capturer, IpcIo *reply)
 {
+    if (capturer == nullptr) {
+        MEDIA_ERR_LOG("Start faild, capturer value is nullptr");
+        return;
+    }
+
     bool record = capturer->Record();
     if (record) {
         threadExit_ = false;
@@ -180,6 +195,11 @@ void AudioCapturerServer::Start(AudioCapturerImpl *capturer, IpcIo *reply)
 
 void AudioCapturerServer::Stop(AudioCapturerImpl *capturer, IpcIo *reply)
 {
+    if (capturer == nullptr) {
+        MEDIA_ERR_LOG("Stop faild, capturer value is nullptr");
+        return;
+    }
+
     int32_t ret = capturer->Stop();
     ReadAudioDataProcessExit();
     IpcIoPushInt32(reply, ret);
@@ -187,6 +207,11 @@ void AudioCapturerServer::Stop(AudioCapturerImpl *capturer, IpcIo *reply)
 
 void AudioCapturerServer::GetMinFrameCount(IpcIo *req, IpcIo *reply)
 {
+    if (reply == nullptr) {
+        MEDIA_ERR_LOG("GetMinFrameCount faild, reply value is nullptr");
+        return;
+    }
+
     uint32_t size = 0;
     int32_t sampleRate = IpcIoPopInt32(req);
     int32_t channelCount = IpcIoPopInt32(req);
@@ -200,6 +225,11 @@ void AudioCapturerServer::GetMinFrameCount(IpcIo *req, IpcIo *reply)
 
 void AudioCapturerServer::GetFrameCount(AudioCapturerImpl *capturer, IpcIo *reply)
 {
+    if (capturer == nullptr) {
+        MEDIA_ERR_LOG("GetFrameCount faild, capturer value is nullptr");
+        return;
+    }
+
     uint64_t frameCount = capturer->GetFrameCount();
     IpcIoPushInt32(reply, MEDIA_OK);
     IpcIoPushUint64(reply, frameCount);
@@ -207,6 +237,11 @@ void AudioCapturerServer::GetFrameCount(AudioCapturerImpl *capturer, IpcIo *repl
 
 void AudioCapturerServer::GetStatus(AudioCapturerImpl *capturer, IpcIo *reply)
 {
+    if (capturer == nullptr) {
+        MEDIA_ERR_LOG("GetStatus faild, capturer value is nullptr");
+        return;
+    }
+
     State status = capturer->GetStatus();
     IpcIoPushInt32(reply, MEDIA_OK);
     IpcIoPushInt32(reply, status);
@@ -215,6 +250,10 @@ void AudioCapturerServer::GetStatus(AudioCapturerImpl *capturer, IpcIo *reply)
 void AudioCapturerServer::SetSurface(IpcIo *req, IpcIo *reply)
 {
     Surface *surface = SurfaceImpl::GenericSurfaceByIpcIo(*req);
+    if (surface == nullptr) {
+        MEDIA_ERR_LOG("SetSurface faild, surface value is nullptr");
+        return;
+    }
     int32_t ret = SetSurfaceProcess(surface);
     IpcIoPushInt32(reply, ret);
 }

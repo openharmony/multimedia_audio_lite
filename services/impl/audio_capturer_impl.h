@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef AUDIO_CAPTURER_IMPL_H
-#define AUDIO_CAPTURER_IMPL_H
+#ifndef FRAMEWORKS_AUDIO_CAPTURER_IMPL_H
+#define FRAMEWORKS_AUDIO_CAPTURER_IMPL_H
 
 #include <mutex>
 #include <sys/time.h>
@@ -60,4 +60,4 @@ private:
 };
 }  // namespace Audio
 }  // namespace OHOS
-#endif  // AUDIO_CAPTURER_IMPL_H
+#endif  // FRAMEWORKS_AUDIO_CAPTURER_IMPL_H

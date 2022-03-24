@@ -25,8 +25,8 @@ namespace OHOS {
 namespace Audio {
 using namespace OHOS::Media;
 
-const unsigned long long TIME_CONVERSION_US_S = 1000000ULL;  /* us to s */
-const unsigned long long TIME_CONVERSION_NS_US = 1000ULL;  /* ns  to us  */
+const uint64_t TIME_CONVERSION_US_S = 1000000; /* us to s */
+const uint64_t TIME_CONVERSION_NS_US = 1000; /* ns  to us  */
 
 #define CHK_NULL_RETURN(ptr, ret) \
     do { \
@@ -200,8 +200,8 @@ bool AudioCapturerImpl::Record()
 
 int32_t AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize, bool isBlockingRead)
 {
-    if (buffer == nullptr || userSize == 0) {
-        MEDIA_ERR_LOG("Invalid buffer:%p userSize:%u", buffer, userSize);
+    if (buffer == nullptr || !userSize) {
+        MEDIA_ERR_LOG("Invalid buffer:%d userSize:%u", reinterpret_cast<void*>(buffer), userSize);
         return ERR_INVALID_READ;
     }
     CHK_NULL_RETURN(audioSource_, ERROR);
@@ -226,6 +226,12 @@ int32_t AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize, bool isBlockin
         AudioStream stream;
         stream.buffer = buffer;
         stream.bufferLen = userSize;
+
+        if (audioEncoder_ == nullptr) {
+            MEDIA_ERR_LOG("audioEncoder_ ReadStream fail, audioEncoder_ value is nullptr");
+            return ERR_INVALID_READ;
+        }
+
         readLen = audioEncoder_->ReadStream(stream, isBlockingRead);
         if (readLen == ERR_INVALID_READ) {
             MEDIA_ERR_LOG("audioEncoder_ ReadStream fail,ret:0x%x", readLen);
