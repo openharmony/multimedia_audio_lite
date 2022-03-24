@@ -25,8 +25,8 @@ namespace OHOS {
 namespace Audio {
 using namespace OHOS::Media;
 
-const uint64_t TIME_CONVERSION_US_S = 1000000;/* us to s */
-const uint64_t TIME_CONVERSION_NS_US = 1000;  /* ns  to us  */
+const uint64_t TIME_CONVERSION_US_S = 1000000; /* us to s */
+const uint64_t TIME_CONVERSION_NS_US = 1000; /* ns  to us  */
 
 #define CHK_NULL_RETURN(ptr, ret) \
     do { \
