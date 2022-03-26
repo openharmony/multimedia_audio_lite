@@ -12,9 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#ifndef SERVICES_INCLUDE_AUDIO_CAPTURER_SERVER_H
-#define SERVICES_INCLUDE_AUDIO_CAPTURER_SERVER_H
+#ifndef AUDIO_CAPTURER_SERVER_H
+#define AUDIO_CAPTURER_SERVER_H
 
 #include <mutex>
 #include <pthread.h>
@@ -64,14 +63,17 @@ public:
 private:
     void GetMinFrameCount(IpcIo *req, IpcIo *reply);
     int32_t SetSurfaceProcess(Surface *surface);
-    void ReadAudioDataProcessExit(void);
     void SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo *reply);
     void GetInfo(AudioCapturerImpl *capturer, IpcIo *reply);
     void Start(AudioCapturerImpl *capturer, IpcIo *reply);
     void Stop(AudioCapturerImpl *capturer, IpcIo *reply);
+    void GetMiniFrameCount(IpcIo *req, IpcIo *reply);
     void GetFrameCount(AudioCapturerImpl *capturer, IpcIo *reply);
     void GetStatus(AudioCapturerImpl *capturer, IpcIo *reply);
     void SetSurface(IpcIo *req, IpcIo *reply);
+    SurfaceBuffer *GetCacheBuffer(void);
+    void CancelBuffer(SurfaceBuffer *buffer);
+    void FreeCacheBuffer(void);
 
     pid_t clientPid_ = -1;
     AudioCapturerImpl *capturer_ = nullptr;
@@ -80,9 +82,10 @@ private:
     pthread_t dataThreadId_ = 0;
     std::mutex lock_;
     bool threadExit_ = false;
+    SurfaceBuffer *bufCache_ = nullptr;
 };
 
 void AudioCapturerServiceReg();
 }  // namespace Audio
 }  // namespace OHOS
-#endif // SERVICES_INCLUDE_AUDIO_CAPTURER_SERVER_H
+#endif // AUDIO_CAPTURER_SERVER_H
