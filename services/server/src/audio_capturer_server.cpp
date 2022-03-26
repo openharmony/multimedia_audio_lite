@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2020 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,7 +14,6 @@
  */
 
 #include "audio_capturer_server.h"
-
 #include "audio_capturer_impl.h"
 #include "media_errors.h"
 #include "media_log.h"
@@ -54,36 +53,51 @@ void AudioCapturerServer::AcceptServer(pid_t pid, IpcIo *reply)
     }
 }
 
-void AudioCapturerServer::ReadAudioDataProcessExit(void)
-{
-    MEDIA_INFO_LOG("ReadAudioDataProcessExit");
-    if (dataThreadId_) {
-        threadExit_ = true;
-        pthread_join(dataThreadId_, nullptr);
-        threadExit_ = false;
-        dataThreadId_ = 0;
-    }
-}
-
 void AudioCapturerServer::DropServer(pid_t pid, IpcIo *reply)
 {
     MEDIA_INFO_LOG("in");
     if (pid == clientPid_) {
-        ReadAudioDataProcessExit();
+        if (dataThreadId_ != 0) {
+            threadExit_ = true;
+            pthread_join(dataThreadId_, nullptr);
+            threadExit_ = false;
+            dataThreadId_ = 0;
+        }
         delete capturer_;
         capturer_ = nullptr;
         clientPid_ = -1;
-    }
-    if (surface_ != nullptr) {
-        delete surface_;
-        surface_ = nullptr;
+        bufCache_ = nullptr;
     }
     IpcIoPushInt32(reply, MEDIA_OK);
 }
 
+SurfaceBuffer *AudioCapturerServer::GetCacheBuffer(void)
+{
+    if (surface_ == nullptr) {
+        MEDIA_ERR_LOG("No available serverStore in surface.");
+        return nullptr;
+    }
+
+    if (bufCache_ == nullptr) {
+        bufCache_ = surface_->RequestBuffer();
+    }
+    return bufCache_;
+}
+
+void AudioCapturerServer::CancelBuffer(SurfaceBuffer *buffer)
+{
+    surface_->CancelBuffer(buffer);
+    FreeCacheBuffer();
+}
+
+void AudioCapturerServer::FreeCacheBuffer(void)
+{
+    bufCache_ = nullptr;
+}
+
 void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
 {
-    AudioCapturerServer *serverStore = reinterpret_cast<AudioCapturerServer*>(serverStr);
+    AudioCapturerServer *serverStore = (AudioCapturerServer *)serverStr;
     if (serverStore == nullptr || serverStore->surface_ == nullptr) {
         MEDIA_ERR_LOG("No available serverStore in surface.");
         return nullptr;
@@ -92,25 +106,22 @@ void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
     MEDIA_INFO_LOG("thread work");
     while (!serverStore->threadExit_) {
         /* request surface buffer */
-        SurfaceBuffer *surfaceBuf = serverStore->surface_->RequestBuffer();
+        SurfaceBuffer *surfaceBuf = serverStore->GetCacheBuffer();
         if (surfaceBuf == nullptr) {
-            usleep(20000); // indicates 20000 microseconds
+            usleep(5000); // indicates 5000 microseconds
             continue;
         }
         uint32_t size = serverStore->surface_->GetSize();
         void *buf = surfaceBuf->GetVirAddr();
-        uint32_t offSet = sizeof(Timestamp);
-        /* if offset more then size , will lead to overflow */
-        if (offSet > size) {
-            MEDIA_ERR_LOG("offSet more then serverStore , can be overflow");
+        if (buf == nullptr) {
+            serverStore->CancelBuffer(surfaceBuf);
             continue;
         }
+        uint32_t offSet = sizeof(Timestamp);
         /* Timestamp + audio data */
         /* read frame data, and reserve timestamp space */
-        int32_t readLen = serverStore->capturer_->Read(reinterpret_cast<uint8_t*>(buf) + offSet, size - offSet, true);
+        int32_t readLen = serverStore->capturer_->Read((uint8_t *)buf + offSet, size - offSet, true);
         if (readLen == ERR_INVALID_READ) {
-            serverStore->surface_->CancelBuffer(surfaceBuf);
-            usleep(20000); // indicates 20000 microseconds
             continue;
         }
 
@@ -119,19 +130,23 @@ void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
         bool ret =  serverStore->capturer_->GetTimestamp(timestamp, base);
         if (!ret) {
             MEDIA_ERR_LOG("No readtime get.");
-            serverStore->surface_->CancelBuffer(surfaceBuf);
             continue;
         }
-        (void)memcpy_s(reinterpret_cast<uint8_t*>(buf), sizeof(Timestamp), &timestamp, sizeof(Timestamp));
+        errno_t retCopy = memcpy_s((uint8_t *)buf, sizeof(Timestamp), &timestamp, sizeof(Timestamp));
+        if (retCopy != EOK) {
+            MEDIA_ERR_LOG("retCopy = %x", retCopy);
+            continue;
+        }
         surfaceBuf->SetSize(sizeof(Timestamp) + readLen);
 
         // flush buffer
-        if (serverStore->surface_->FlushBuffer(surfaceBuf)) {
+        if (serverStore->surface_->FlushBuffer(surfaceBuf) != 0) {
             MEDIA_ERR_LOG("Flush surface buffer failed.");
-            serverStore->surface_->CancelBuffer(surfaceBuf);
+            serverStore->CancelBuffer(surfaceBuf);
             ret = MEDIA_ERR;
             continue;
         }
+        serverStore->FreeCacheBuffer();
     }
     MEDIA_INFO_LOG("thread exit");
     return nullptr;
@@ -148,18 +163,33 @@ int32_t AudioCapturerServer::SetSurfaceProcess(Surface *surface)
     return 0;
 }
 
+void AudioCapturerServer::GetMinFrameCount(IpcIo *req, IpcIo *reply)
+{
+    int32_t sampleRate = IpcIoPopInt32(req);
+    int32_t channelCount = IpcIoPopInt32(req);
+    AudioCodecFormat audioFormat = (AudioCodecFormat)IpcIoPopInt32(req);
+    size_t frameCount;
+    bool ret = AudioCapturerImpl::GetMinFrameCount(sampleRate, channelCount, audioFormat, frameCount);
+    IpcIoPushInt32(reply, ret);
+    IpcIoPushUint32(reply, frameCount);
+}
+
 void AudioCapturerServer::SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo *reply)
 {
     AudioCapturerInfo info;
     uint32_t size = 0;
     void *bufferAdd = IpcIoPopFlatObj(req, &size);
 
-    if (bufferAdd == nullptr || !size) {
+    if (bufferAdd == nullptr || size == 0) {
         MEDIA_INFO_LOG("IpcIoPopFlatObj info failed");
         IpcIoPushInt32(reply, -1);
         return;
     }
-    (void)memcpy_s(&info, sizeof(AudioCapturerInfo), bufferAdd, size);
+    errno_t retCopy = memcpy_s(&info, sizeof(AudioCapturerInfo), bufferAdd, size);
+    if (retCopy != EOK) {
+        MEDIA_ERR_LOG("retCopy = %x", retCopy);
+        return;
+    }
     int32_t ret = capturer->SetCapturerInfo(info);
     IpcIoPushInt32(reply, ret);
 }
@@ -170,7 +200,7 @@ void AudioCapturerServer::GetInfo(AudioCapturerImpl *capturer, IpcIo *reply)
         MEDIA_ERR_LOG("GetInfo faild, capturer value is nullptr");
         return;
     }
-
+    
     AudioCapturerInfo info;
     int32_t ret = capturer->GetCapturerInfo(info);
     IpcIoPushInt32(reply, ret);
@@ -199,13 +229,17 @@ void AudioCapturerServer::Stop(AudioCapturerImpl *capturer, IpcIo *reply)
         MEDIA_ERR_LOG("Stop faild, capturer value is nullptr");
         return;
     }
-
     int32_t ret = capturer->Stop();
-    ReadAudioDataProcessExit();
+    if (dataThreadId_ != 0) {
+        threadExit_ = true;
+        pthread_join(dataThreadId_, nullptr);
+        threadExit_ = false;
+        dataThreadId_ = 0;
+    }
     IpcIoPushInt32(reply, ret);
 }
 
-void AudioCapturerServer::GetMinFrameCount(IpcIo *req, IpcIo *reply)
+void AudioCapturerServer::GetMiniFrameCount(IpcIo *req, IpcIo *reply)
 {
     if (reply == nullptr) {
         MEDIA_ERR_LOG("GetMinFrameCount faild, reply value is nullptr");
@@ -262,7 +296,6 @@ void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo 
 {
     int32_t ret;
     if (funcId == AUD_CAP_FUNC_GET_MIN_FRAME_COUNT) {
-        GetMinFrameCount(req, reply);
         return;
     }
     if (funcId == AUD_CAP_FUNC_CONNECT) {
@@ -299,11 +332,13 @@ void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo 
             break;
         case AUD_CAP_FUNC_RELEASE:
             ret = capturer->Release();
-            ReadAudioDataProcessExit();
             IpcIoPushInt32(reply, ret);
             break;
         case AUD_CAP_FUNC_SET_SURFACE:
             SetSurface(req, reply);
+            break;
+        case AUD_CAP_FUNC_GET_MIN_FRAME_COUNT:
+            GetMiniFrameCount(req, reply);
             break;
         default:
             break;
