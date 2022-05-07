@@ -39,7 +39,7 @@ shared_library("audio_capturer_lite") {
 
     deps = [
       "//base/security/permission/services/permission_lite/pms_client:pms_client",
-      "//foundation/communication/ipc_lite:liteipc_adapter",
+      "//foundation/communication/ipc/interfaces/innerkits/c/ipc:ipc_single",
       "//foundation/graphic/surface:lite_surface",
     ]
   }
