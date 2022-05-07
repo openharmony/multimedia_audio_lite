@@ -81,7 +81,7 @@ static int32 Invoke(IServerProxy *iProxy, int funcId, void *origin, IpcIo *req, 
         return FALSE;
     }
 
-    pid_t pid = GetCallingPid(origin);
+    pid_t pid = GetCallingPid();
     AudioCapturerServer *mng = AudioCapturerServer::GetInstance();
     if (mng == nullptr) {
         MEDIA_ERR_LOG("Invoke failed, mng is nunnptr");

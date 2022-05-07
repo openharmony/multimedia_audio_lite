@@ -47,9 +47,9 @@ void AudioCapturerServer::AcceptServer(pid_t pid, IpcIo *reply)
     if (clientPid_ == -1) {
         capturer_ = new AudioCapturerImpl;
         clientPid_ = pid;
-        IpcIoPushInt32(reply, MEDIA_OK);
+        WriteInt32(reply, MEDIA_OK);
     } else {
-        IpcIoPushInt32(reply, MEDIA_IPC_FAILED);
+        WriteInt32(reply, MEDIA_IPC_FAILED);
     }
 }
 
@@ -68,7 +68,7 @@ void AudioCapturerServer::DropServer(pid_t pid, IpcIo *reply)
         clientPid_ = -1;
         bufCache_ = nullptr;
     }
-    IpcIoPushInt32(reply, MEDIA_OK);
+    WriteInt32(reply, MEDIA_OK);
 }
 
 SurfaceBuffer *AudioCapturerServer::GetCacheBuffer(void)
@@ -165,24 +165,29 @@ int32_t AudioCapturerServer::SetSurfaceProcess(Surface *surface)
 
 void AudioCapturerServer::GetMinFrameCount(IpcIo *req, IpcIo *reply)
 {
-    int32_t sampleRate = IpcIoPopInt32(req);
-    int32_t channelCount = IpcIoPopInt32(req);
-    AudioCodecFormat audioFormat = (AudioCodecFormat)IpcIoPopInt32(req);
+    int32_t sampleRate = 0;
+    ReadInt32(req, &sampleRate);
+    int32_t channelCount = 0;
+    ReadInt32(req, &channelCount);
+    int32_t data = 0;
+    ReadInt32(req, &data);
+    AudioCodecFormat audioFormat = (AudioCodecFormat)data;
     size_t frameCount;
     bool ret = AudioCapturerImpl::GetMinFrameCount(sampleRate, channelCount, audioFormat, frameCount);
-    IpcIoPushInt32(reply, ret);
-    IpcIoPushUint32(reply, frameCount);
+    WriteInt32(reply, ret);
+    WriteUint32(reply, frameCount);
 }
 
 void AudioCapturerServer::SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo *reply)
 {
     AudioCapturerInfo info;
     uint32_t size = 0;
-    void *bufferAdd = IpcIoPopFlatObj(req, &size);
+    ReadUint32(req, &size);
+    void *bufferAdd = (void*)ReadBuffer(req, size);
 
     if (bufferAdd == nullptr || size == 0) {
-        MEDIA_INFO_LOG("IpcIoPopFlatObj info failed");
-        IpcIoPushInt32(reply, -1);
+        MEDIA_INFO_LOG("Readbuffer info failed");
+        WriteInt32(reply, -1);
         return;
     }
     errno_t retCopy = memcpy_s(&info, sizeof(AudioCapturerInfo), bufferAdd, size);
@@ -191,7 +196,7 @@ void AudioCapturerServer::SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo
         return;
     }
     int32_t ret = capturer->SetCapturerInfo(info);
-    IpcIoPushInt32(reply, ret);
+    WriteInt32(reply, ret);
 }
 
 void AudioCapturerServer::GetInfo(AudioCapturerImpl *capturer, IpcIo *reply)
@@ -203,8 +208,9 @@ void AudioCapturerServer::GetInfo(AudioCapturerImpl *capturer, IpcIo *reply)
     
     AudioCapturerInfo info;
     int32_t ret = capturer->GetCapturerInfo(info);
-    IpcIoPushInt32(reply, ret);
-    IpcIoPushFlatObj(reply, &info, sizeof(AudioCapturerInfo));
+    WriteInt32(reply, ret);
+    WriteUint32(reply, sizeof(AudioCapturerInfo));
+    WriteBuffer(reply, &info, sizeof(AudioCapturerInfo));
 }
 
 void AudioCapturerServer::Start(AudioCapturerImpl *capturer, IpcIo *reply)
@@ -220,7 +226,7 @@ void AudioCapturerServer::Start(AudioCapturerImpl *capturer, IpcIo *reply)
         pthread_create(&dataThreadId_, nullptr, ReadAudioDataProcess, this);
         MEDIA_INFO_LOG("create thread ReadAudioDataProcess SUCCESS");
     }
-    IpcIoPushInt32(reply, record);
+    WriteInt32(reply, record);
 }
 
 void AudioCapturerServer::Stop(AudioCapturerImpl *capturer, IpcIo *reply)
@@ -236,7 +242,7 @@ void AudioCapturerServer::Stop(AudioCapturerImpl *capturer, IpcIo *reply)
         threadExit_ = false;
         dataThreadId_ = 0;
     }
-    IpcIoPushInt32(reply, ret);
+    WriteInt32(reply, ret);
 }
 
 void AudioCapturerServer::GetMiniFrameCount(IpcIo *req, IpcIo *reply)
@@ -246,15 +252,18 @@ void AudioCapturerServer::GetMiniFrameCount(IpcIo *req, IpcIo *reply)
         return;
     }
 
+    int32_t sampleRate = 0;
+    ReadInt32(req, &sampleRate);
+    int32_t channelCount = 0;
+    ReadInt32(req, &channelCount);
     uint32_t size = 0;
-    int32_t sampleRate = IpcIoPopInt32(req);
-    int32_t channelCount = IpcIoPopInt32(req);
-    AudioCodecFormat *audioFormat = (AudioCodecFormat *)IpcIoPopFlatObj(req, &size);
+    ReadUint32(req, &size);
+    AudioCodecFormat *audioFormat = (AudioCodecFormat *)ReadBuffer(req, size);
 
     size_t frameCount;
     bool ret = AudioCapturerImpl::GetMinFrameCount(sampleRate, channelCount, *audioFormat, frameCount);
-    IpcIoPushInt32(reply, ret);
-    IpcIoPushUint64(reply, frameCount);
+    WriteInt32(reply, ret);
+    WriteUint64(reply, frameCount);
 }
 
 void AudioCapturerServer::GetFrameCount(AudioCapturerImpl *capturer, IpcIo *reply)
@@ -265,8 +274,8 @@ void AudioCapturerServer::GetFrameCount(AudioCapturerImpl *capturer, IpcIo *repl
     }
 
     uint64_t frameCount = capturer->GetFrameCount();
-    IpcIoPushInt32(reply, MEDIA_OK);
-    IpcIoPushUint64(reply, frameCount);
+    WriteInt32(reply, MEDIA_OK);
+    WriteUint64(reply, frameCount);
 }
 
 void AudioCapturerServer::GetStatus(AudioCapturerImpl *capturer, IpcIo *reply)
@@ -277,8 +286,8 @@ void AudioCapturerServer::GetStatus(AudioCapturerImpl *capturer, IpcIo *reply)
     }
 
     State status = capturer->GetStatus();
-    IpcIoPushInt32(reply, MEDIA_OK);
-    IpcIoPushInt32(reply, status);
+    WriteInt32(reply, MEDIA_OK);
+    WriteInt32(reply, status);
 }
 
 void AudioCapturerServer::SetSurface(IpcIo *req, IpcIo *reply)
@@ -289,7 +298,7 @@ void AudioCapturerServer::SetSurface(IpcIo *req, IpcIo *reply)
         return;
     }
     int32_t ret = SetSurfaceProcess(surface);
-    IpcIoPushInt32(reply, ret);
+    WriteInt32(reply, ret);
 }
 
 void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo *reply)
@@ -305,7 +314,7 @@ void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo 
     auto capturer = GetAudioCapturer(pid);
     if (capturer == nullptr) {
         MEDIA_ERR_LOG("Cannot find client object.(pid=%d)", pid);
-        IpcIoPushInt32(reply, MEDIA_IPC_FAILED);
+        WriteInt32(reply, MEDIA_IPC_FAILED);
         return;
     }
     switch (funcId) {
@@ -332,7 +341,7 @@ void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo 
             break;
         case AUD_CAP_FUNC_RELEASE:
             ret = capturer->Release();
-            IpcIoPushInt32(reply, ret);
+            WriteInt32(reply, ret);
             break;
         case AUD_CAP_FUNC_SET_SURFACE:
             SetSurface(req, reply);

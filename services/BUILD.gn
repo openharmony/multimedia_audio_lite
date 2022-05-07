@@ -29,6 +29,7 @@ static_library("audio_capturer_server") {
     "//base/security/permission/interfaces/kits/permission_lite",
     "//foundation/distributedschedule/samgr_lite/interfaces/kits/registry",
     "//foundation/distributedschedule/samgr_lite/interfaces/kits/samgr",
+    "//foundation/communication/ipc/interfaces/innerkits/c/ipc/include",
     "//foundation/distributedschedule/samgr_lite/interfaces/kits/communication/broadcast",
     "//foundation/multimedia/utils/lite/interfaces/kits",
   ]
