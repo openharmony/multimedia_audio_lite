@@ -17,8 +17,8 @@
 
 #include <cstdio>
 #include "audio_capturer_server.h"
-#include "liteipc_adapter.h"
 #include "media_log.h"
+#include "ipc_skeleton.h"
 #include "samgr_lite.h"
 #include "securec.h"
 #include "surface_impl.h"
@@ -63,7 +63,7 @@ static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
 
     CallBackPara* para = static_cast<CallBackPara*>(owner);
     AudioCapturerFuncId funcId = (AudioCapturerFuncId)para->funcId;
-    para->ret = IpcIoPopInt32(reply);
+    ReadInt32(reply, &para->ret);
     switch (funcId) {
         case AUD_CAP_FUNC_CONNECT:
         case AUD_CAP_FUNC_DISCONNECT:
@@ -74,23 +74,24 @@ static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
         case AUD_CAP_FUNC_SET_SURFACE:
             break;
         case AUD_CAP_FUNC_GET_FRAME_COUNT:
-            (*reinterpret_cast<uint64_t*>(para->data)) = IpcIoPopUint64(reply);
+            ReadUint64(reply, reinterpret_cast<uint64_t*>(para->data));
             break;
         case AUD_CAP_FUNC_GET_STATUS:
-            (*reinterpret_cast<uint32_t*>(para->data)) = IpcIoPopUint32(reply);
+            ReadUint32(reply, reinterpret_cast<uint32_t*>(para->data));
             break;
         case AUD_CAP_FUNC_GET_INFO: {
             uint32_t size = 0;
-            void *bufferAdd = IpcIoPopFlatObj(reply, &size);
+            ReadUint32(reply, &size);
+            void *bufferAdd = (void*)ReadBuffer(reply, (size_t)size);
             if (bufferAdd == nullptr || !size) {
-                MEDIA_INFO_LOG("IpcIoPopFlatObj info failed");
+                MEDIA_INFO_LOG("Readbuffer info failed");
                 return -1;
             }
             (void)memcpy_s(para->data, sizeof(AudioCapturerInfo), bufferAdd, size);
             break;
         }
         case AUD_CAP_FUNC_GET_MIN_FRAME_COUNT:
-            (*reinterpret_cast<uint32_t*>(para->data)) = IpcIoPopUint32(reply);
+            ReadUint32(reply, reinterpret_cast<uint32_t*>(para->data));
             break;
         default :
             MEDIA_INFO_LOG("Callback, unknown funcId = %d", para->funcId);
@@ -208,9 +209,10 @@ bool AudioCapturer::AudioCapturerClient::GetMinFrameCount(int32_t sampleRate, in
     IpcIo io;
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
-    IpcIoPushInt32(&io, sampleRate);
-    IpcIoPushInt32(&io, channelCount);
-    IpcIoPushFlatObj(&io, &audioFormat, sizeof(audioFormat));
+    WriteInt32(&io, sampleRate);
+    WriteInt32(&io, channelCount);
+    WriteUint32(&io, sizeof(audioFormat));
+    WriteBuffer(&io, &audioFormat, sizeof(audioFormat));
     CallBackPara para = {.funcId = AUD_CAP_FUNC_GET_MIN_FRAME_COUNT, .ret = MEDIA_IPC_FAILED, .data = &frameCount};
     uint32_t ret = client->proxy_->Invoke(client->proxy_, AUD_CAP_FUNC_GET_MIN_FRAME_COUNT, &io, &para,
                                         ProxyCallbackFunc);
@@ -274,7 +276,8 @@ int32_t AudioCapturer::AudioCapturerClient::SetCapturerInfo(const AudioCapturerI
     IpcIo io;
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
-    IpcIoPushFlatObj(&io, &info, sizeof(info));
+    WriteUint32(&io, sizeof(info));
+    WriteBuffer(&io, &info, sizeof(info));
     CallBackPara para = {.funcId = AUD_CAP_FUNC_SET_INFO, .ret = MEDIA_IPC_FAILED};
 
     if (proxy_ == nullptr) {

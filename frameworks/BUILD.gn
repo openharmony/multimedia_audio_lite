@@ -22,8 +22,12 @@ shared_library("audio_capturer_lite") {
     include_dirs = [
       "//foundation/multimedia/audio_lite/frameworks/passthrough",
       "//foundation/multimedia/audio_lite/services/impl",
+      "//foundation/distributedschedule/samgr_lite/interfaces/kits/samgr",
     ]
-    deps = [ "//foundation/multimedia/audio_lite/services:audio_capturer_impl" ]
+    deps = [
+      "//foundation/distributedschedule/samgr_lite/samgr:samgr",
+      "//foundation/multimedia/audio_lite/services:audio_capturer_impl",
+    ]
   } else {
     sources += [ "binder/audio_capturer_client.cpp" ]
 
@@ -39,7 +43,7 @@ shared_library("audio_capturer_lite") {
 
     deps = [
       "//base/security/permission/services/permission_lite/pms_client:pms_client",
-      "//foundation/communication/ipc/interfaces/innerkits/c/ipc:ipc_single",
+      "//foundation/distributedschedule/samgr_lite/samgr:samgr",
       "//foundation/graphic/surface:lite_surface",
     ]
   }
