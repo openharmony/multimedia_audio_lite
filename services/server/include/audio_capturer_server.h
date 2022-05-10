@@ -19,7 +19,7 @@
 #include <pthread.h>
 #include <thread>
 #include "audio_capturer_impl.h"
-#include "liteipc_adapter.h"
+#include "ipc_skeleton.h"
 #include "serializer.h"
 #include "surface.h"
 

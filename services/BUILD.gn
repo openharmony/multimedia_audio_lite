@@ -29,13 +29,14 @@ static_library("audio_capturer_server") {
     "//base/security/permission/interfaces/kits/permission_lite",
     "//foundation/distributedschedule/samgr_lite/interfaces/kits/registry",
     "//foundation/distributedschedule/samgr_lite/interfaces/kits/samgr",
+    "//foundation/communication/ipc/interfaces/innerkits/c/ipc/include",
     "//foundation/distributedschedule/samgr_lite/interfaces/kits/communication/broadcast",
     "//foundation/multimedia/utils/lite/interfaces/kits",
   ]
 
   deps = [
     "//base/security/permission/services/permission_lite/pms_client:pms_client",
-    "//foundation/communication/ipc_lite:liteipc_adapter",
+    "//foundation/communication/ipc/interfaces/innerkits/c/ipc:ipc_single",
     "//foundation/distributedschedule/samgr_lite/samgr:samgr",
     "//foundation/graphic/surface:lite_surface",
     "//foundation/multimedia/audio_lite/services:audio_capturer_impl",
