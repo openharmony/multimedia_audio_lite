@@ -60,7 +60,7 @@ public:
      * Enumerates currently supported devices by audio source type.
      *
      * @param inputSource the type of source audio.
-     * @param devices holds an array of statisfied audio device description, including name and identity.
+     * @param devices holds an array of satisfied audio device description, including name and identity.
      * @return Returns SUCCESS if success, other values otherwise.
      */
     int32_t EnumDeviceBySourceType(AudioSourceType inputSource, std::vector<AudioDeviceDesc> &devices);
@@ -85,7 +85,7 @@ public:
     uint64_t GetFrameCount();
 
     /**
-     * Initailizes the audio source according to a specific configuration.
+     * Initializes the audio source according to a specific configuration.
      *
      * @param config a configuration of audio source.
      * @return Returns SUCCESS if success, other values otherwise.
@@ -95,7 +95,7 @@ public:
     /**
      * Sets input device's identity when switching device.
      *
-     * @param deviceId indentity to set.
+     * @param deviceId identity to set.
      * @return Returns SUCCESS if set successfully, other values otherwise.
     */
     int32_t SetInputDevice(uint32_t deviceId);

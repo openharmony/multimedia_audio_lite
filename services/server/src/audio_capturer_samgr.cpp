@@ -84,7 +84,7 @@ static int32 Invoke(IServerProxy *iProxy, int funcId, void *origin, IpcIo *req, 
     pid_t pid = GetCallingPid();
     AudioCapturerServer *mng = AudioCapturerServer::GetInstance();
     if (mng == nullptr) {
-        MEDIA_ERR_LOG("Invoke failed, mng is nunnptr");
+        MEDIA_ERR_LOG("Invoke failed, mng is nullptr");
         return FALSE;
     }
 
@@ -106,12 +106,12 @@ void AudioCapturerServiceReg()
     MEDIA_INFO_LOG("Input AudioCapturerServiceReg");
     bool ret = SAMGR_GetInstance()->RegisterService(reinterpret_cast<Service*>(&audioCapturerSvc));
     if (!ret) {
-        MEDIA_ERR_LOG("AudioCapturer regist service failed.");
+        MEDIA_ERR_LOG("AudioCapturer register service failed.");
         return;
     }
     ret = SAMGR_GetInstance()->RegisterDefaultFeatureApi(AUDIO_CAPTURER_SERVICE_NAME, GET_IUNKNOWN(audioCapturerSvc));
     if (!ret) {
-        MEDIA_ERR_LOG("AudioCapturer regist feature failed.");
+        MEDIA_ERR_LOG("AudioCapturer register feature failed.");
         return;
     }
 }
