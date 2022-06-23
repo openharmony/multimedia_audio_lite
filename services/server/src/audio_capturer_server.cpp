@@ -202,7 +202,7 @@ void AudioCapturerServer::SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo
 void AudioCapturerServer::GetInfo(AudioCapturerImpl *capturer, IpcIo *reply)
 {
     if (capturer == nullptr) {
-        MEDIA_ERR_LOG("GetInfo faild, capturer value is nullptr");
+        MEDIA_ERR_LOG("GetInfo failed, capturer value is nullptr");
         return;
     }
     
@@ -216,7 +216,7 @@ void AudioCapturerServer::GetInfo(AudioCapturerImpl *capturer, IpcIo *reply)
 void AudioCapturerServer::Start(AudioCapturerImpl *capturer, IpcIo *reply)
 {
     if (capturer == nullptr) {
-        MEDIA_ERR_LOG("Start faild, capturer value is nullptr");
+        MEDIA_ERR_LOG("Start failed, capturer value is nullptr");
         return;
     }
 
@@ -232,7 +232,7 @@ void AudioCapturerServer::Start(AudioCapturerImpl *capturer, IpcIo *reply)
 void AudioCapturerServer::Stop(AudioCapturerImpl *capturer, IpcIo *reply)
 {
     if (capturer == nullptr) {
-        MEDIA_ERR_LOG("Stop faild, capturer value is nullptr");
+        MEDIA_ERR_LOG("Stop failed, capturer value is nullptr");
         return;
     }
     int32_t ret = capturer->Stop();
@@ -248,7 +248,7 @@ void AudioCapturerServer::Stop(AudioCapturerImpl *capturer, IpcIo *reply)
 void AudioCapturerServer::GetMiniFrameCount(IpcIo *req, IpcIo *reply)
 {
     if (reply == nullptr) {
-        MEDIA_ERR_LOG("GetMinFrameCount faild, reply value is nullptr");
+        MEDIA_ERR_LOG("GetMinFrameCount failed, reply value is nullptr");
         return;
     }
 
@@ -269,7 +269,7 @@ void AudioCapturerServer::GetMiniFrameCount(IpcIo *req, IpcIo *reply)
 void AudioCapturerServer::GetFrameCount(AudioCapturerImpl *capturer, IpcIo *reply)
 {
     if (capturer == nullptr) {
-        MEDIA_ERR_LOG("GetFrameCount faild, capturer value is nullptr");
+        MEDIA_ERR_LOG("GetFrameCount failed, capturer value is nullptr");
         return;
     }
 
@@ -281,7 +281,7 @@ void AudioCapturerServer::GetFrameCount(AudioCapturerImpl *capturer, IpcIo *repl
 void AudioCapturerServer::GetStatus(AudioCapturerImpl *capturer, IpcIo *reply)
 {
     if (capturer == nullptr) {
-        MEDIA_ERR_LOG("GetStatus faild, capturer value is nullptr");
+        MEDIA_ERR_LOG("GetStatus failed, capturer value is nullptr");
         return;
     }
 
@@ -294,7 +294,7 @@ void AudioCapturerServer::SetSurface(IpcIo *req, IpcIo *reply)
 {
     Surface *surface = SurfaceImpl::GenericSurfaceByIpcIo(*req);
     if (surface == nullptr) {
-        MEDIA_ERR_LOG("SetSurface faild, surface value is nullptr");
+        MEDIA_ERR_LOG("SetSurface failed, surface value is nullptr");
         return;
     }
     int32_t ret = SetSurfaceProcess(surface);

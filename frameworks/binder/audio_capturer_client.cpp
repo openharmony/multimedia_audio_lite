@@ -199,7 +199,7 @@ AudioCapturer::AudioCapturerClient::~AudioCapturerClient()
     if (surface_ != nullptr) {
         DeleteSurface();
     }
-    MEDIA_INFO_LOG("dector");
+    MEDIA_INFO_LOG("destructor");
 }
 
 bool AudioCapturer::AudioCapturerClient::GetMinFrameCount(int32_t sampleRate, int32_t channelCount,
