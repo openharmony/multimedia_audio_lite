@@ -19,7 +19,7 @@ static_library("audio_capturer_server") {
     "server/src/audio_capturer_server.cpp",
   ]
   cflags = [ "-fPIC" ]
-  cflags += [ "-Wall" ]
+  cflags += [ "-Werror" ]
   cflags_cc = cflags
   include_dirs = [
     "//foundation/multimedia/audio_lite/services/server/include",
@@ -52,7 +52,7 @@ shared_library("audio_capturer_impl") {
     "impl/audio_source/audio_source.cpp",
   ]
   cflags = [ "-fPIC" ]
-  cflags += [ "-Wall" ]
+  cflags += [ "-Werror" ]
   cflags_cc = cflags
   include_dirs = [
     "//foundation/multimedia/audio_lite/services/impl/audio_encoder/include",
