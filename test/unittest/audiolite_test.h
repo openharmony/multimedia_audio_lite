@@ -29,7 +29,7 @@ struct OHOS::Audio::AudioCapturerInfo audioCapInfo;
 
 class AudioliteTest : public testing::Test {
 public:
-    // SetUpTestCase: before all testcasee
+    // SetUpTestCase: before all testcase
     static void SetUpTestCase(void);
     // TearDownTestCase: after all testcase
     static void TearDownTestCase(void);

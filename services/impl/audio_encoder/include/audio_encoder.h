@@ -55,7 +55,7 @@ public:
     ~AudioEncoder();
 
     /**
-    * Initailizes the audio source according to a specific configuration.
+    * Initializes the audio source according to a specific configuration.
     *
     * @param config a configuration of audio source.
     * @return Returns SUCCESS if success, other values otherwise.
