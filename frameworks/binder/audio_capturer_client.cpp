@@ -43,7 +43,6 @@ struct CallBackPara {
     void* data;
 };
 
-
 AudioCapturer::AudioCapturerClient *AudioCapturer::AudioCapturerClient::GetInstance()
 {
     static AudioCapturerClient client;
