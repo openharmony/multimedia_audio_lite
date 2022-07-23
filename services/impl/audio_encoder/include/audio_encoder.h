@@ -49,6 +49,11 @@ struct AudioStream {
     int64_t timeStamp = 0;
 };
 
+typedef struct {
+	CodecBuffer info;
+	CodecBufferInfo buffer;
+} AudioBufferInfo;
+
 class AudioEncoder {
 public:
     AudioEncoder();
@@ -124,7 +129,7 @@ private:
     CodecType domainKind_ = AUDIO_ENCODER;
     AvCodecMime codecMime_ = MEDIA_MIMETYPE_AUDIO_AAC;
     Profile profile_ = INVALID_PROFILE;
-    AudioSampleRate sampleRate_ = AUD_SAMPLE_RATE_INVALID;
+    uint32_t sampleRate_ = 0;
     uint32_t bitRate_ = 0;
     AudioSoundMode soundMode_ = AUD_SOUND_MODE_INVALID;
     uint32_t ptNumPerFrm_ = AUDIO_POINT_NUM;

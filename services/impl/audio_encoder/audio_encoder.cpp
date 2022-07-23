@@ -58,7 +58,7 @@ static bool IsAudioCodecFormatSupported(AudioCodecFormat format)
 static bool IsAudioSampleRateSupported(AudioCodecFormat format, uint32_t sampleRate)
 {
     if (format == G711A || format == G711U || format == G726) {
-        if (sampleRate != AUD_SAMPLE_RATE_8000) {
+        if (sampleRate != 8000) { // 8000 G711/G726 only support 8kHz
             MEDIA_ERR_LOG("Invalid sampleRate:%d, G711/G726 only support 8kHz", sampleRate);
             return false;
         }
@@ -106,37 +106,6 @@ static Profile GetProfileFromAudioCodecFormat(AudioCodecFormat format)
     }
 }
 
-static AudioSampleRate ConvertSampleRate(uint32_t sampleRate)
-{
-    switch (sampleRate) {
-        case AUD_SAMPLE_RATE_8000:
-            return AUD_SAMPLE_RATE_8000;
-        case AUD_SAMPLE_RATE_11025:
-            return AUD_SAMPLE_RATE_11025;
-        case AUD_SAMPLE_RATE_12000:
-            return AUD_SAMPLE_RATE_12000;
-        case AUD_SAMPLE_RATE_16000:
-            return AUD_SAMPLE_RATE_16000;
-        case AUD_SAMPLE_RATE_22050:
-            return AUD_SAMPLE_RATE_22050;
-        case AUD_SAMPLE_RATE_24000:
-            return AUD_SAMPLE_RATE_24000;
-        case AUD_SAMPLE_RATE_32000:
-            return AUD_SAMPLE_RATE_32000;
-        case AUD_SAMPLE_RATE_44100:
-            return AUD_SAMPLE_RATE_44100;
-        case AUD_SAMPLE_RATE_48000:
-            return AUD_SAMPLE_RATE_48000;
-        case AUD_SAMPLE_RATE_64000:
-            return AUD_SAMPLE_RATE_64000;
-        case AUD_SAMPLE_RATE_96000:
-            return AUD_SAMPLE_RATE_96000;
-        default:
-            MEDIA_ERR_LOG("Invalid sample_rate:%u", sampleRate);
-            return AUD_SAMPLE_RATE_48000;
-    }
-}
-
 static AudioSoundMode ConvertSoundMode(uint32_t channelCount)
 {
     switch (channelCount) {
@@ -176,10 +145,10 @@ int32_t AudioEncoder::InitAudioEncoderAttr(const AudioEncodeConfig &config)
     encAttr_[paramIndex].val = &profile_;
     encAttr_[paramIndex].size = sizeof(Profile);
     paramIndex++;
-    sampleRate_ = ConvertSampleRate(config.sampleRate);
-    encAttr_[paramIndex].key = KEY_SAMPLE_RATE;
+    sampleRate_ = config.sampleRate;
+    encAttr_[paramIndex].key = KEY_AUDIO_SAMPLE_RATE;
     encAttr_[paramIndex].val = &sampleRate_;
-    encAttr_[paramIndex].size = sizeof(AudioSampleRate);
+    encAttr_[paramIndex].size = sizeof(uint32_t);
     paramIndex++;
     bitRate_ = config.bitRate;
     encAttr_[paramIndex].key = KEY_BITRATE;
@@ -187,12 +156,12 @@ int32_t AudioEncoder::InitAudioEncoderAttr(const AudioEncodeConfig &config)
     encAttr_[paramIndex].size = sizeof(uint32_t);
     paramIndex++;
     soundMode_ = ConvertSoundMode(config.channelCount);
-    encAttr_[paramIndex].key = KEY_SOUND_MODE;
+    encAttr_[paramIndex].key = KEY_AUDIO_SOUND_MODE;
     encAttr_[paramIndex].val = &soundMode_;
     encAttr_[paramIndex].size = sizeof(AudioSoundMode);
     paramIndex++;
     ptNumPerFrm_ = AUDIO_POINT_NUM;
-    encAttr_[paramIndex].key = KEY_POINT_NUM_PER_FRAME;
+    encAttr_[paramIndex].key = KEY_AUDIO_POINTS_PER_FRAME;
     encAttr_[paramIndex].val = &ptNumPerFrm_;
     encAttr_[paramIndex].size = sizeof(uint32_t);
     paramIndex++;
@@ -210,10 +179,15 @@ int32_t AudioEncoder::Initialize(const AudioEncodeConfig &config)
         MEDIA_ERR_LOG("InitAudioEncoderAttr failed:%d", ret);
         return ret;
     }
-    const char *audioEncName = "codec.aac.hardware.encoder";
-    ret = CodecCreate(audioEncName, encAttr_, AUDIO_ENC_PARAM_NUM, &encHandle_);
+    ret = CodecCreateByType(domainKind_, codecMime_, &encHandle_);
     if (ret != SUCCESS) {
-        MEDIA_ERR_LOG("CodecCreate failed:0x%x", ret);
+        MEDIA_ERR_LOG("CodecCreateByType failed:0x%x", ret);
+        return ret;
+    }
+    ret = CodecSetParameter(encHandle_, encAttr_, AUDIO_ENC_PARAM_NUM);
+    if (ret != SUCCESS) {
+		CodecDestroy(encHandle_);
+        MEDIA_ERR_LOG("CodecSetParameter failed:0x%x", ret);
         return ret;
     }
     initialized_ = true;
@@ -278,26 +252,23 @@ int32_t AudioEncoder::ReadStream(AudioStream &stream, bool isBlockingRead)
     } else {
         timeoutMs = 0;
     }
-    OutputInfo outInfo = {};
-    CodecBufferInfo outBuf = {};
-    outInfo.bufferCnt = 1;
-    outInfo.buffers = &outBuf;
-    int32_t ret = CodecDequeueOutput(encHandle_, timeoutMs, nullptr, &outInfo);
-    if (ret != SUCCESS && outInfo.buffers[0].addr == nullptr) {
+    AudioBufferInfo outInfo;
+    int32_t ret = CodecDequeueOutput(encHandle_, timeoutMs, nullptr, (CodecBuffer *)&outInfo);
+    if (ret != SUCCESS && outInfo.info.buffer[0].buf == 0) {
         MEDIA_ERR_LOG("CodecDequeueOutput failed:0x%x", ret);
         return ERR_INVALID_READ;
     }
     int32_t readLen = 0;
-    errno_t retCopy = memcpy_s(stream.buffer, stream.bufferLen, outInfo.buffers[0].addr,
-                               outInfo.buffers[0].length);
+    errno_t retCopy = memcpy_s(stream.buffer, stream.bufferLen, (void *)outInfo.info.buffer[0].buf,
+                               outInfo.info.buffer[0].length);
     if (retCopy != EOK) {
-        MEDIA_ERR_LOG("memcpy_s failed, timeStamp:%lld, retCopy:0x%x", outInfo.timeStamp, retCopy);
+        MEDIA_ERR_LOG("memcpy_s failed, timeStamp:%lld, retCopy:0x%x", outInfo.info.timeStamp, retCopy);
         return ERR_INVALID_OPERATION;
     } else {
-        readLen = outInfo.buffers[0].length;
+        readLen = outInfo.info.buffer[0].length;
     }
-    stream.timeStamp = outInfo.timeStamp;
-    (void)CodecQueueOutput(encHandle_, &outInfo, timeoutMs, -1);
+    stream.timeStamp = outInfo.info.timeStamp;
+    (void)CodecQueueOutput(encHandle_, (CodecBuffer *)&outInfo, timeoutMs, -1);
     return readLen;
 }
 
