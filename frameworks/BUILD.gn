@@ -36,13 +36,13 @@ shared_library("audio_capturer_lite") {
       "//foundation/multimedia/audio_lite/services/impl",
       "//foundation/multimedia/audio_lite/frameworks/binder",
       "//foundation/distributedschedule/samgr_lite/interfaces/kits/registry",
-      "//base/security/permission/interfaces/kits/permission_lite",
+      "//base/security/permission_lite/interfaces/kits",
       "//foundation/distributedschedule/samgr_lite/interfaces/kits/registry",
       "//foundation/distributedschedule/samgr_lite/interfaces/kits/samgr",
     ]
 
     deps = [
-      "//base/security/permission/services/permission_lite/pms_client:pms_client",
+      "//base/security/permission_lite/services/pms_client:pms_client",
       "//foundation/distributedschedule/samgr_lite/samgr:samgr",
       "//foundation/graphic/surface:lite_surface",
     ]
