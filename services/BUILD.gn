@@ -26,7 +26,7 @@ static_library("audio_capturer_server") {
     "//foundation/multimedia/audio_lite/interfaces/kits",
     "//foundation/multimedia/audio_lite/services/impl",
     "//third_party/bounds_checking_function/include",
-    "//base/security/permission/interfaces/kits/permission_lite",
+    "//base/security/permission_lite/interfaces/kits",
     "//foundation/distributedschedule/samgr_lite/interfaces/kits/registry",
     "//foundation/distributedschedule/samgr_lite/interfaces/kits/samgr",
     "//foundation/communication/ipc/interfaces/innerkits/c/ipc/include",
@@ -35,7 +35,7 @@ static_library("audio_capturer_server") {
   ]
 
   deps = [
-    "//base/security/permission/services/permission_lite/pms_client:pms_client",
+    "//base/security/permission_lite/services/pms_client:pms_client",
     "//foundation/communication/ipc/interfaces/innerkits/c/ipc:ipc_single",
     "//foundation/distributedschedule/samgr_lite/samgr:samgr",
     "//foundation/graphic/surface:lite_surface",
