@@ -50,8 +50,8 @@ struct AudioStream {
 };
 
 typedef struct {
-	CodecBuffer info;
-	CodecBufferInfo buffer;
+    CodecBuffer info;
+    CodecBufferInfo buffer;
 } AudioBufferInfo;
 
 class AudioEncoder {

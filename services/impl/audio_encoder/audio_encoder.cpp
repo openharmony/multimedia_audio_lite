@@ -186,7 +186,7 @@ int32_t AudioEncoder::Initialize(const AudioEncodeConfig &config)
     }
     ret = CodecSetParameter(encHandle_, encAttr_, AUDIO_ENC_PARAM_NUM);
     if (ret != SUCCESS) {
-		CodecDestroy(encHandle_);
+        CodecDestroy(encHandle_);
         MEDIA_ERR_LOG("CodecSetParameter failed:0x%x", ret);
         return ret;
     }
