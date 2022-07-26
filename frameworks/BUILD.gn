@@ -32,17 +32,18 @@ shared_library("audio_capturer_lite") {
     sources += [ "binder/audio_capturer_client.cpp" ]
 
     include_dirs = [
+      "//base/security/permission_lite/interfaces/kits",
       "//foundation/multimedia/audio_lite/services/server/include",
       "//foundation/multimedia/audio_lite/services/impl",
       "//foundation/multimedia/audio_lite/frameworks/binder",
       "//foundation/systemabilitymgr/samgr_lite/interfaces/kits/registry",
-      "//base/security/permission/interfaces/kits/permission_lite",
       "//foundation/systemabilitymgr/samgr_lite/interfaces/kits/registry",
       "//foundation/systemabilitymgr/samgr_lite/interfaces/kits/samgr",
     ]
 
     deps = [
-      "//base/security/permission/services/permission_lite/pms_client:pms_client",
+      "//base/security/permission_lite/services/pms_client:pms_client",
+      "//foundation/systemabilitymgr/samgr_lite/samgr:samgr",
       "//foundation/graphic/surface:lite_surface",
       "//foundation/systemabilitymgr/samgr_lite/samgr:samgr",
     ]

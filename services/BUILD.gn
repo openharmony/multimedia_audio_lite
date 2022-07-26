@@ -22,20 +22,20 @@ static_library("audio_capturer_server") {
   cflags += [ "-Werror" ]
   cflags_cc = cflags
   include_dirs = [
+    "//base/security/permission_lite/interfaces/kits",
     "//foundation/multimedia/audio_lite/services/server/include",
     "//foundation/multimedia/audio_lite/interfaces/kits",
     "//foundation/multimedia/audio_lite/services/impl",
-    "//third_party/bounds_checking_function/include",
-    "//base/security/permission/interfaces/kits/permission_lite",
     "//foundation/systemabilitymgr/samgr_lite/interfaces/kits/registry",
     "//foundation/systemabilitymgr/samgr_lite/interfaces/kits/samgr",
     "//foundation/communication/ipc/interfaces/innerkits/c/ipc/include",
     "//foundation/systemabilitymgr/samgr_lite/interfaces/kits/communication/broadcast",
     "//foundation/multimedia/utils/lite/interfaces/kits",
+    "//third_party/bounds_checking_function/include",
   ]
 
   deps = [
-    "//base/security/permission/services/permission_lite/pms_client:pms_client",
+    "//base/security/permission_lite/services/pms_client:pms_client",
     "//foundation/communication/ipc/interfaces/innerkits/c/ipc:ipc_single",
     "//foundation/graphic/surface:lite_surface",
     "//foundation/multimedia/audio_lite/services:audio_capturer_impl",
