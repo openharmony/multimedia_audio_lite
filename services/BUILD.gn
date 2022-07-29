@@ -61,6 +61,8 @@ shared_library("audio_capturer_impl") {
     "//foundation/multimedia/audio_lite/interfaces/kits",
     "//drivers/peripheral/audio/interfaces/include",
     "//drivers/peripheral/codec/interfaces/include",
+    "//drivers/peripheral/display/interfaces/include",
+    "//drivers/peripheral/base",
     "//foundation/multimedia/utils/lite/interfaces/kits",
   ]
 
