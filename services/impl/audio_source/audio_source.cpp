@@ -185,6 +185,8 @@ int32_t AudioSource::Initialize(const AudioSourceConfig &config)
     AUDIO_RETURN_VAL_IF_NULL(audioAdapter_);
     MEDIA_INFO_LOG("deviceId:0x%x config.sampleRate:%d", config.deviceId, config.sampleRate);
     struct AudioDeviceDescriptor desc;
+    desc.pins = PIN_IN_MIC;
+    desc.desc = NULL;
     struct AudioSampleAttributes attrs;
     if (config.streamUsage == TYPE_MEDIA || config.streamUsage == TYPE_DEFAULT) {
         attrs.type = AUDIO_IN_MEDIA;
