@@ -146,31 +146,31 @@ static bool ConvertCodecFormatToAudioFormat(AudioCodecFormat codecFormat, AudioF
     switch (codecFormat) {
         case AUDIO_DEFAULT:
         case PCM:
-            *audioFormat = AUDIO_FORMAT_PCM_16_BIT;
+            *audioFormat = AUDIO_FORMAT_TYPE_PCM_16_BIT;
             break;
         case AAC_LC:
-            *audioFormat = AUDIO_FORMAT_AAC_LC;
+            *audioFormat = AUDIO_FORMAT_TYPE_AAC_LC;
             break;
         case AAC_LD:
-            *audioFormat = AUDIO_FORMAT_AAC_LD;
+            *audioFormat = AUDIO_FORMAT_TYPE_AAC_LD;
             break;
         case AAC_ELD:
-            *audioFormat = AUDIO_FORMAT_AAC_ELD;
+            *audioFormat = AUDIO_FORMAT_TYPE_AAC_ELD;
             break;
         case AAC_HE_V1:
-            *audioFormat = AUDIO_FORMAT_AAC_HE_V1;
+            *audioFormat = AUDIO_FORMAT_TYPE_AAC_HE_V1;
             break;
         case AAC_HE_V2:
-            *audioFormat = AUDIO_FORMAT_AAC_HE_V2;
+            *audioFormat = AUDIO_FORMAT_TYPE_AAC_HE_V2;
             break;
         case G711A:
-            *audioFormat = AUDIO_FORMAT_G711A;
+            *audioFormat = AUDIO_FORMAT_TYPE_G711A;
             break;
         case G711U:
-            *audioFormat = AUDIO_FORMAT_G711U;
+            *audioFormat = AUDIO_FORMAT_TYPE_G711U;
             break;
         case G726:
-            *audioFormat = AUDIO_FORMAT_G726;
+            *audioFormat = AUDIO_FORMAT_TYPE_G726;
             break;
         default: {
             MEDIA_ERR_LOG("not support this codecFormat:%d", codecFormat);
