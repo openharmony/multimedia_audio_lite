@@ -30,7 +30,7 @@ static_library("audio_capturer_server") {
     "//foundation/systemabilitymgr/samgr_lite/interfaces/kits/samgr",
     "//foundation/communication/ipc/interfaces/innerkits/c/ipc/include",
     "//foundation/systemabilitymgr/samgr_lite/interfaces/kits/communication/broadcast",
-    "//foundation/multimedia/utils/lite/interfaces/kits",
+    "//foundation/multimedia/media_utils_lite/interfaces/kits",
     "//third_party/bounds_checking_function/include",
   ]
 
@@ -39,7 +39,7 @@ static_library("audio_capturer_server") {
     "//foundation/communication/ipc/interfaces/innerkits/c/ipc:ipc_single",
     "//foundation/graphic/surface:lite_surface",
     "//foundation/multimedia/audio_lite/services:audio_capturer_impl",
-    "//foundation/multimedia/utils/lite:media_common",
+    "//foundation/multimedia/media_utils_lite:media_common",
     "//foundation/systemabilitymgr/samgr_lite/samgr:samgr",
     "//third_party/bounds_checking_function:libsec_shared",
   ]
@@ -63,7 +63,7 @@ shared_library("audio_capturer_impl") {
     "//drivers/peripheral/codec/interfaces/include",
     "//drivers/peripheral/display/interfaces/include",
     "//drivers/peripheral/base",
-    "//foundation/multimedia/utils/lite/interfaces/kits",
+    "//foundation/multimedia/media_utils_lite/interfaces/kits",
   ]
 
   outdir = rebase_path("$root_out_dir")
@@ -77,12 +77,12 @@ shared_library("audio_capturer_impl") {
   deps = [
     "//device/soc/hisilicon/common/hal/media:hardware_media_sdk",
     "//foundation/graphic/surface:lite_surface",
-    "//foundation/multimedia/utils/lite:media_common",
+    "//foundation/multimedia/media_utils_lite:media_common",
     "//third_party/bounds_checking_function:libsec_shared",
   ]
 }
 
 config("audio_external_library_config") {
   include_dirs = [ "//foundation/multimedia/audio_lite/interfaces/kits" ]
-  include_dirs += [ "//foundation/multimedia/utils/lite/interfaces/kits" ]
+  include_dirs += [ "//foundation/multimedia/media_utils_lite/interfaces/kits" ]
 }
