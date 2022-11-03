@@ -28,19 +28,19 @@ if (ohos_build_type == "debug") {
       "//foundation/multimedia/audio_lite/frameworks/audio_encoder/include",
       "//foundation/multimedia/audio_lite/frameworks/audio_source/include",
       "//foundation/multimedia/audio_lite/interfaces/kits",
-      "//foundation/multimedia/utils/lite/include",
+      "//foundation/multimedia/media_utils_lite/include",
       "//drivers/peripheral/audio/interfaces/include",
       "//drivers/peripheral/codec/interfaces/include",
       "//drivers/peripheral/format/interfaces/include",
       "//drivers/peripheral/display/interfaces/include",
       "//drivers/peripheral/base",
       "//foundation/multimedia/audio_lite/test/unittest",
-      "//foundation/multimedia/utils/lite/interfaces/kits",
+      "//foundation/multimedia/media_utils_lite/interfaces/kits",
     ]
 
     deps = [
       "//foundation/multimedia/audio_lite/frameworks:audio_capturer_lite",
-      "//foundation/multimedia/utils/lite:media_common",
+      "//foundation/multimedia/media_utils_lite:media_common",
       "//third_party/bounds_checking_function:libsec_shared",
     ]
   }
