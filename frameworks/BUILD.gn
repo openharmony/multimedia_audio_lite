@@ -12,7 +12,7 @@
 # limitations under the License.
 import("//build/lite/config/component/lite_component.gni")
 import("//build/lite/ndk/ndk.gni")
-import("//foundation/multimedia/utils/lite/config.gni")
+import("//foundation/multimedia/media_utils_lite/config.gni")
 
 shared_library("audio_capturer_lite") {
   sources = [ "audio_capturer.cpp" ]
@@ -50,7 +50,7 @@ shared_library("audio_capturer_lite") {
   public_configs = [ ":audio_capturer_public_config" ]
 
   public_deps = [
-    "//foundation/multimedia/utils/lite:media_common",
+    "//foundation/multimedia/media_utils_lite:media_common",
     "//third_party/bounds_checking_function:libsec_shared",
   ]
 }
@@ -58,7 +58,7 @@ shared_library("audio_capturer_lite") {
 config("audio_capturer_public_config") {
   include_dirs = [
     "//foundation/multimedia/audio_lite/interfaces/kits",
-    "//foundation/multimedia/utils/lite/interfaces/kits",
+    "//foundation/multimedia/media_utils_lite/interfaces/kits",
   ]
 
   cflags = [ "-fPIC" ]
