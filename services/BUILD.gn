@@ -37,7 +37,7 @@ static_library("audio_capturer_server") {
   deps = [
     "//base/security/permission_lite/services/pms_client:pms_client",
     "//foundation/communication/ipc/interfaces/innerkits/c/ipc:ipc_single",
-    "//foundation/graphic/surface:lite_surface",
+    "//foundation/graphic/surface:surface_lite",
     "//foundation/multimedia/audio_lite/services:audio_capturer_impl",
     "//foundation/multimedia/media_utils_lite:media_common",
     "//foundation/systemabilitymgr/samgr_lite/samgr:samgr",
@@ -76,7 +76,7 @@ shared_library("audio_capturer_impl") {
   ]
   deps = [
     "//device/soc/hisilicon/common/hal/media:hardware_media_sdk",
-    "//foundation/graphic/surface:lite_surface",
+    "//foundation/graphic/surface:surface_lite",
     "//foundation/multimedia/media_utils_lite:media_common",
     "//third_party/bounds_checking_function:libsec_shared",
   ]
