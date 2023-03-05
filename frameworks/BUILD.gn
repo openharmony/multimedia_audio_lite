@@ -43,7 +43,7 @@ shared_library("audio_capturer_lite") {
 
     deps = [
       "//base/security/permission_lite/services/pms_client:pms_client",
-      "//foundation/graphic/surface:lite_surface",
+      "//foundation/graphic/surface:surface_lite",
       "//foundation/systemabilitymgr/samgr_lite/samgr:samgr",
     ]
   }
