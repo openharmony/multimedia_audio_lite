@@ -201,7 +201,7 @@ bool AudioCapturerImpl::Record()
 int32_t AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize, bool isBlockingRead)
 {
     if (buffer == nullptr || !userSize) {
-        MEDIA_ERR_LOG("Invalid buffer:%p userSize:%u", reinterpret_cast<void*>(buffer), userSize);
+        MEDIA_ERR_LOG("Invalid buffer or userSize:%u", userSize);
         return ERR_INVALID_READ;
     }
     CHK_NULL_RETURN(audioSource_, ERROR);
