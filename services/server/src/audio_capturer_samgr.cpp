@@ -48,9 +48,9 @@ static BOOL Initialize(Service *service, Identity identity)
 
     AudioCapturerService *capturerSvc = reinterpret_cast<AudioCapturerService*>(service);
     capturerSvc->identity = identity;
-    MEDIA_DEBUG_LOG("Initialize(%s)! Identity<%d, %d, %p>",
+    MEDIA_DEBUG_LOG("Initialize(%s)! Identity<%d, %d>",
                     AUDIO_CAPTURER_SERVICE_NAME, identity.serviceId,
-                    identity.featureId, reinterpret_cast<void*>(&identity.queueId));
+                    identity.featureId);
     return TRUE;
 }
 
@@ -61,9 +61,8 @@ static BOOL MessageHandle(Service *service, Request *msg)
         return FALSE;
     }
 
-    MEDIA_DEBUG_LOG("MessageHandle(%s)! Request<%d, %d, %p>", service->GetName(service),
-                    msg->msgId, msg->msgValue,
-                    reinterpret_cast<void*>(&msg->data));
+    MEDIA_DEBUG_LOG("MessageHandle(%s)! Request<%d, %d>", service->GetName(service),
+                    msg->msgId, msg->msgValue);
     return FALSE;
 }
 
