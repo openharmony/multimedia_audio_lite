@@ -31,7 +31,7 @@ Build a single repository in the root directory.
 # Select the development board.
 hb set  
 # Build this repository.
-hb build audio_manager_lite 
+hb build audio_lite 
 ```
 
 ## Constraints<a name="section722512541395"></a>
