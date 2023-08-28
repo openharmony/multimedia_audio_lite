@@ -31,7 +31,7 @@ foundation/multimedia/audio_lite
 # 开发板选择
 hb set  
 # 单仓构建和编译
-hb build audio_manager_lite 
+hb build audio_lite 
 ```
 
 ## 约束<a name="section722512541395"></a>
