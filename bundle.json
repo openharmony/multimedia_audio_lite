@@ -1,5 +1,5 @@
 {
-    "name": "@ohos/audio_manager_lite",
+    "name": "@ohos/audio_lite",
     "description": "Audio encoder and decoder for small system.",
     "version": "3.1",
     "license": "Apache License 2.0",
@@ -10,11 +10,12 @@
     "dirs": {},
     "scripts": {},
     "component": {
-        "name": "audio_manager_lite",
+        "name": "audio_lite",
         "subsystem": "multimedia",
         "syscap": [],
         "features": [],
         "adapted_system_type": [
+            "mini",
             "small"
         ],
         "rom": "59KB",
