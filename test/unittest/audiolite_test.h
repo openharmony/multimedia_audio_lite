@@ -37,6 +37,9 @@ public:
     void SetUp(void);
     // TearDown
     void TearDown(void);
+
+    static void AudioliteTestFunc(AudioCodecFormat audioFormat, int32_t sampleRate, int32_t channelCount,
+        int32_t bitRate, AudioBitWidth bitWidth);
 };
 } // namespace OHOS
 #endif // AUDIOLITETEST_H
