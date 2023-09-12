@@ -119,16 +119,8 @@ static AudioSoundMode ConvertSoundMode(uint32_t channelCount)
     }
 }
 
-int32_t AudioEncoder::InitAudioEncoderAttr(const AudioEncodeConfig &config)
+void AudioEncoder::setEncAttrValue(const AudioEncodeConfig &config)
 {
-    if (!IsAudioCodecFormatSupported(config.audioFormat)) {
-        MEDIA_ERR_LOG("audioFormat:0x%x is not support", config.audioFormat);
-        return ERR_INVALID_PARAM;
-    }
-    if (!IsAudioSampleRateSupported(config.audioFormat, config.sampleRate)) {
-        MEDIA_ERR_LOG("audioFormat:%d is not support sampleRate:%d", config.audioFormat, config.sampleRate);
-        return ERR_INVALID_PARAM;
-    }
     uint32_t paramIndex = 0;
     domainKind_ = AUDIO_ENCODER;
     encAttr_[paramIndex].key = KEY_CODEC_TYPE;
@@ -169,6 +161,20 @@ int32_t AudioEncoder::InitAudioEncoderAttr(const AudioEncodeConfig &config)
     encAttr_[paramIndex].key = KEY_BUFFERSIZE;
     encAttr_[paramIndex].val = &bufSize_;
     encAttr_[paramIndex].size = sizeof(uint32_t);
+}
+
+int32_t AudioEncoder::InitAudioEncoderAttr(const AudioEncodeConfig &config)
+{
+    if (!IsAudioCodecFormatSupported(config.audioFormat)) {
+        MEDIA_ERR_LOG("audioFormat:0x%x is not support", config.audioFormat);
+        return ERR_INVALID_PARAM;
+    }
+    if (!IsAudioSampleRateSupported(config.audioFormat, config.sampleRate)) {
+        MEDIA_ERR_LOG("audioFormat:%d is not support sampleRate:%d", config.audioFormat, config.sampleRate);
+        return ERR_INVALID_PARAM;
+    }
+    setEncAttrValue(config);
+
     return SUCCESS;
 }
 
