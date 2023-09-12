@@ -303,7 +303,6 @@ void AudioCapturerServer::SetSurface(IpcIo *req, IpcIo *reply)
 
 void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo *reply)
 {
-    int32_t ret;
     if (funcId == AUD_CAP_FUNC_GET_MIN_FRAME_COUNT) {
         return;
     }
@@ -340,8 +339,7 @@ void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo 
             Stop(capturer, reply);
             break;
         case AUD_CAP_FUNC_RELEASE:
-            ret = capturer->Release();
-            WriteInt32(reply, ret);
+            WriteInt32(reply, static_cast<int32_t>(capturer->Release()));
             break;
         case AUD_CAP_FUNC_SET_SURFACE:
             SetSurface(req, reply);
