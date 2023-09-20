@@ -122,6 +122,7 @@ public:
 
 private:
     int32_t InitAudioEncoderAttr(const AudioEncodeConfig &config);
+    void setEncAttrValue(const AudioEncodeConfig &config);
 
 private:
     bool initialized_;
