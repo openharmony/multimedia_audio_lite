@@ -48,15 +48,16 @@ AudioSource::AudioSource()
     for (int index = 0; index < size; index++) {
         struct AudioAdapterDescriptor *desc = &descs[index];
         for (int port = 0; (desc != nullptr && port < static_cast<int>(desc->portNum)); port++) {
-            if (desc->ports[port].dir == PORT_IN &&
-                !(g_audioManager->LoadAdapter(g_audioManager, desc, &audioAdapter_))) {
-                (void)audioAdapter_->InitAllPorts(audioAdapter_);
-                if (memcpy_s(&capturePort_, sizeof(struct AudioPort),
-                    &desc->ports[port], sizeof(struct AudioPort))) {
-                    MEDIA_WARNING_LOG("memcpy_s capturePort_ failed");
-                }
-                break;
+            if ((desc->ports[port].dir != PORT_IN) ||
+                (g_audioManager->LoadAdapter(g_audioManager, desc, &audioAdapter_))) {
+                continue;
             }
+            (void)audioAdapter_->InitAllPorts(audioAdapter_);
+            if (memcpy_s(&capturePort_, sizeof(struct AudioPort),
+                &desc->ports[port], sizeof(struct AudioPort))) {
+                MEDIA_WARNING_LOG("memcpy_s capturePort_ failed");
+            }
+            break;
         }
     }
     MEDIA_DEBUG_LOG("LoadAdapter audioAdapter_");
