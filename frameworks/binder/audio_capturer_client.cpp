@@ -324,10 +324,10 @@ bool AudioCapturer::AudioCapturerClient::Start()
         return false;
     }
     
-    bool ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_START, &io, &para, ProxyCallbackFunc);
+    int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_START, &io, &para, ProxyCallbackFunc);
     if (ret) {
         MEDIA_ERR_LOG("Start failed, ret=%d", ret);
-        return true;
+        return false;
     }
 
     return para.ret;
