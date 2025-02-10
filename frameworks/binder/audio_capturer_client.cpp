@@ -327,7 +327,7 @@ bool AudioCapturer::AudioCapturerClient::Start()
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_START, &io, &para, ProxyCallbackFunc);
     if (ret) {
         MEDIA_ERR_LOG("Start failed, ret=%d", ret);
-        return ret;
+        return false;
     }
 
     return para.ret;
@@ -348,7 +348,7 @@ bool AudioCapturer::AudioCapturerClient::Stop()
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_STOP, &io, &para, ProxyCallbackFunc);
     if (ret) {
         MEDIA_ERR_LOG("Stop failed, ret=%d", ret);
-        return ret;
+        return false;
     }
 
     return para.ret;
@@ -369,7 +369,7 @@ bool AudioCapturer::AudioCapturerClient::Release()
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_RELEASE, &io, &para, ProxyCallbackFunc);
     if (ret) {
         MEDIA_ERR_LOG("Release failed, ret=%d", ret);
-        return ret;
+        return false;
     }
 
     DeleteSurface();
