@@ -49,11 +49,6 @@ struct AudioStream {
     int64_t timeStamp = 0;
 };
 
-typedef struct {
-    CodecBuffer info;
-    CodecBufferInfo buffer;
-} AudioBufferInfo;
-
 class AudioEncoder {
 public:
     AudioEncoder();

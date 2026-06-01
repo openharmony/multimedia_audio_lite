@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 HiSilicon (Shanghai) Technologies Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef FRAMEWORKS_AUDIO_SOURCE_INCLUDE_AUDIO_SOURCE_H_
-#define FRAMEWORKS_AUDIO_SOURCE_INCLUDE_AUDIO_SOURCE_H_
+#ifndef FRAMEWORKS_AUDIO_SOURCE_INCLUDE_AUDIO_VIRTUAL_H_
+#define FRAMEWORKS_AUDIO_SOURCE_INCLUDE_AUDIO_VIRTUAL_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -22,39 +22,35 @@
 #include <time.h>
 #include <vector>
 
-#include "audio_types.h"
-#include "format.h"
-#include "media_errors.h"
-#include "media_info.h"
-
+#include "audio_source.h"
+#include "iaudio_capture.h"
+#include "iaudio_adapter.h"
+#include "iaudio_manager.h"
+#include "audio_manager_callback.h"
+#include "iaudio_device_callback.h"
 
 namespace OHOS {
 namespace Audio {
-struct AudioSourceConfig {
-    /**
-     * Enumerates currently supported devices by audio source type,
-     * and binds current audio source a specified device.
-     */
-    uint32_t deviceId;
-    AudioCodecFormat audioFormat;
-    int32_t sampleRate = 0;
-    int32_t channelCount = 0;
-    bool interleaved;
-    AudioBitWidth bitWidth = BIT_WIDTH_16;
-    AudioStreamType streamUsage;
-};
-
-struct AudioFrame {
-    uint8_t *buffer;    /* the virtual address of stream */
-    uint32_t bufferLen;   /* stream length, by bytes */
-    struct AudioTimeStamp time;
-    uint64_t frames;
-};
-
-class AudioSource {
+using namespace OHOS::HDI::DistributedAudio::Audio::V1_0;
+class AudioManagerDeviceChangeCallbackImpl : public IAudioManagerDeviceChangeCallback {
 public:
-    AudioSource();
-    virtual ~AudioSource();
+    AudioManagerDeviceChangeCallbackImpl(std::shared_ptr<AudioManagerDeviceChangeCallback> callback)
+        : callback_(callback) {}
+    ~AudioManagerDeviceChangeCallbackImpl() override {}
+    void OnDeviceChange(const AudioDeviceInfo &deviceInfo) override
+    {
+        if (callback_ != nullptr) {
+            callback_->OnDeviceChange(deviceInfo);
+        }
+    }
+private:
+    std::shared_ptr <AudioManagerDeviceChangeCallback> callback_ = nullptr;
+};
+
+class AudioSourceVirtual : public AudioSource {
+public:
+    AudioSourceVirtual(std::string deviceId);
+    ~AudioSourceVirtual();
 
     /**
      * Enumerates currently supported devices by audio source type.
@@ -63,26 +59,14 @@ public:
      * @param devices holds an array of satisfied audio device description, including name and identity.
      * @return Returns SUCCESS if success, other values otherwise.
      */
-    virtual int32_t EnumDeviceBySourceType(AudioSourceType inputSource, std::vector<AudioDeviceDesc> &devices) = 0;
-
-     /**
-     * Obtains the minimum frame count (in BytesPerSample) required in the specified conditions.
-     *
-     * @param sampleRate Indicates the sampling rate (Hz).
-     * @param channelCount Indicates the audio channel count.
-     * @param audioFormat Indicates the audio data format.
-     * @param frameCount the minimum frame count (in BytesPerSample).
-     * @return Returns {@code true} if success; returns {@code false} otherwise.
-     */
-    static bool GetMinFrameCount(int32_t sampleRate, int32_t channelCount,
-                                 AudioCodecFormat audioFormat, size_t &frameCount);
+    int32_t EnumDeviceBySourceType(AudioSourceType inputSource, std::vector<AudioDeviceDesc> &devices);
 
     /**
      * Obtains the frame count (in BytesPerSample) required in the current conditions.
      *
      * @return Returns the frame count (in BytesPerSample); returns {@code -1} if an exception occurs.
      */
-    virtual uint64_t GetFrameCount() = 0;
+    uint64_t GetFrameCount();
 
     /**
      * Initializes the audio source according to a specific configuration.
@@ -90,7 +74,7 @@ public:
      * @param config a configuration of audio source.
      * @return Returns SUCCESS if success, other values otherwise.
      */
-    virtual int32_t Initialize(const AudioSourceConfig &config) = 0;
+    int32_t Initialize(const AudioSourceConfig &config);
 
     /**
      * Sets input device's identity when switching device.
@@ -98,7 +82,7 @@ public:
      * @param deviceId identity to set.
      * @return Returns SUCCESS if set successfully, other values otherwise.
     */
-    virtual int32_t SetInputDevice(uint32_t deviceId) = 0;
+    int32_t SetInputDevice(uint32_t deviceId);
 
     /**
      * Gets current device's identity.
@@ -106,14 +90,14 @@ public:
      * @param deviceId holds the identity of current device, if success.
      * @return Returns SUCCESS if success, other values otherwise.
      */
-    virtual int32_t GetCurrentDeviceId(uint32_t &deviceId) = 0;
+    int32_t GetCurrentDeviceId(uint32_t &deviceId);
 
     /**
      * Starts audio source.
      *
      * @return Returns SUCCESS if success, other values otherwise.
     */
-    virtual int32_t Start() = 0;
+    int32_t Start();
 
     /**
      *
@@ -123,19 +107,33 @@ public:
      * @param isBlockingRead reading mode.
      * @return Returns size of data actually read.
     */
-    virtual int32_t ReadFrame(AudioFrame &frame, bool isBlockingRead) = 0;
+    int32_t ReadFrame(AudioFrame &frame, bool isBlockingRead);
 
     /**
      * Stops audio source.
      *
      * @return Returns SUCCESS if success, other values otherwise.
     */
-    virtual int32_t Stop() = 0;
+    int32_t Stop();
 
     /**
     * release.
     */
-    virtual int32_t Release() = 0;
+    int32_t Release();
+
+    void SetDeviceChangeCallback(const std::shared_ptr<IAudioManagerDeviceChangeCallback> &callback);
+
+private:
+    int32_t InitCheck();
+    void AudioAdapterDescriptorMatch(const AudioAdapterDescriptor &desc);
+    IAudioManager *audioManager_ = nullptr;
+    bool initialized_;
+    bool started_;
+    std::string deviceId_;
+    std::string adapterName_;
+    std::shared_ptr<IAudioAdapter> audioAdapter_;
+    std::shared_ptr<IAudioCapture> audioCapture_;
+    std::vector<OHOS::HDI::DistributedAudio::Audio::V1_0::AudioPort> capturePort_ = {};
 };
 }  // namespace Audio
 }  // namespace OHOS

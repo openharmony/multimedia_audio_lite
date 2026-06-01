@@ -17,9 +17,11 @@
 
 #include <sys/select.h>
 
-#include "audio_source.h"
+#include "audio_source_virtual.h"
+#include "audio_source_local.h"
 #include "audio_encoder.h"
 #include "media_log.h"
+#include "audio_manager_interface_impl.h"
 
 namespace OHOS {
 namespace Audio {
@@ -37,7 +39,8 @@ const uint64_t TIME_CONVERSION_NS_US = 1000; /* ns  to us  */
     } while (0)
 
 AudioCapturerImpl::AudioCapturerImpl()
-    :audioSource_(new(std::nothrow) AudioSource()),
+    :audioSourceLocal_(nullptr),
+     audioSourceVirtual_(nullptr),
      audioEncoder_(nullptr)
 {
     MEDIA_DEBUG_LOG("ctor");
@@ -59,13 +62,14 @@ bool AudioCapturerImpl::GetMinFrameCount(int32_t sampleRate, int32_t channelCoun
 
 uint64_t AudioCapturerImpl::GetFrameCount()
 {
-    CHK_NULL_RETURN(audioSource_, 0);
+    std::shared_ptr<AudioSource> audioSource = GetAudioSource();
+    CHK_NULL_RETURN(audioSource, ERROR);
     std::lock_guard<std::mutex> lock(mutex_);
     if (status_ == INITIALIZED || status_ == RELEASED) {
         MEDIA_ERR_LOG("check state:%u failed", status_);
         return 0;
     }
-    return audioSource_->GetFrameCount();
+    return audioSource->GetFrameCount();
 }
 
 State AudioCapturerImpl::GetStatus()
@@ -105,16 +109,35 @@ static void FillEncConfig(AudioEncodeConfig &encodeConfig, const AudioCapturerIn
     encodeConfig.bitWidth = info.bitWidth;
 }
 
-int32_t AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInfo info)
+void AudioCapturerImpl::InitAudioSourceByDeviceType(AudioSystemDeviceType deviceType, std::string deviceId)
 {
-    CHK_NULL_RETURN(audioSource_, ERROR);
+    if (deviceType == AUDIO_DEVICE_MIC_LOCAL) {
+        if (audioSourceLocal_ == nullptr) {
+            MEDIA_INFO_LOG("create AudioSourceLocal success!");
+            audioSourceLocal_ = std::make_shared<AudioSourceLocal>();
+        }
+    }
+    if (deviceType == AUDIO_DEVICE_MIC_VIRTUAL) {
+        if (audioSourceVirtual_ == nullptr) {
+            MEDIA_INFO_LOG("create AudioSourceVirtual success!");
+            audioSourceVirtual_ = std::make_shared<AudioSourceVirtual>(deviceId);
+        }
+    }
+}
+
+int32_t AudioCapturerImpl::SetCapturerInfo(const OHOS::Audio::AudioCapturerInfo &info)
+{
     std::lock_guard<std::mutex> lock(mutex_);
     if (status_ != INITIALIZED) {
         MEDIA_ERR_LOG("check state:%u failed", status_);
         return ERR_ILLEGAL_STATE;
     }
+    InitAudioSourceByDeviceType(info.deviceType, info.deviceId);
+    info_.deviceType = info.deviceType;
+    std::shared_ptr<AudioSource> audioSource = GetAudioSource();
+    CHK_NULL_RETURN(audioSource, ERROR);
     std::vector<AudioDeviceDesc> devices;
-    int32_t ret = audioSource_->EnumDeviceBySourceType(info.inputSource, devices);
+    int32_t ret = audioSource->EnumDeviceBySourceType(info.inputSource, devices);
     if (ret != SUCCESS || devices.empty()) {
         MEDIA_ERR_LOG("EnumDeviceBySourceType failed inputSource:%d", info.inputSource);
         return ret;
@@ -122,12 +145,14 @@ int32_t AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInfo info)
     MEDIA_INFO_LOG("info.sampleRate:%d", info.sampleRate);
     AudioSourceConfig sourceConfig;
     FillSourceConfig(sourceConfig, info, devices[0].deviceId);
-    ret = audioSource_->Initialize(sourceConfig);
+    ret = audioSource->Initialize(sourceConfig);
     if (ret != SUCCESS) {
         MEDIA_ERR_LOG("Initialize failed inputSource:%d", info.inputSource);
         return ret;
     }
-    if (info.audioFormat != PCM && info.audioFormat != AUDIO_DEFAULT) {
+    if (info.audioFormat != PCM &&
+        info.audioFormat != AUDIO_DEFAULT &&
+        info_.deviceType == AUDIO_DEVICE_MIC_LOCAL) {
         AudioEncodeConfig encodeConfig;
         FillEncConfig(encodeConfig, info);
         MEDIA_INFO_LOG("audioEncoder_ bitRate:%d", info.bitRate);
@@ -140,7 +165,7 @@ int32_t AudioCapturerImpl::SetCapturerInfo(const AudioCapturerInfo info)
         ret = audioEncoder_->Initialize(encodeConfig);
         if (ret != SUCCESS) {
             MEDIA_ERR_LOG("Initialize failed inputSource:%d", info.inputSource);
-            (void)audioSource_->Release();
+            (void)audioSource->Release();
             return ret;
         }
     }
@@ -163,20 +188,21 @@ int32_t AudioCapturerImpl::GetCapturerInfo(AudioCapturerInfo &info)
 
 bool AudioCapturerImpl::Record()
 {
-    CHK_NULL_RETURN(audioSource_, false);
+    std::shared_ptr<AudioSource> audioSource = GetAudioSource();
+    CHK_NULL_RETURN(audioSource, false);
     std::lock_guard<std::mutex> lock(mutex_);
     if (status_ != PREPARED && status_ != STOPPED) {
         MEDIA_ERR_LOG("not PREPARED or STOPPED status:%u", status_);
         return false;
     }
-    int32_t ret = audioSource_->Start();
+    int32_t ret = audioSource->Start();
     if (ret != SUCCESS) {
         MEDIA_ERR_LOG("audioSource_ Start failed:0x%x", ret);
         return false;
     }
     if (audioEncoder_ != nullptr) {
         uint32_t deviceId = 0;
-        ret = audioSource_->GetCurrentDeviceId(deviceId);
+        ret = audioSource->GetCurrentDeviceId(deviceId);
         if (ret != SUCCESS) {
             MEDIA_ERR_LOG("audioSource_ GetCurrentDevice failed:0x%x", ret);
             return false;
@@ -204,19 +230,24 @@ int32_t AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize, bool isBlockin
         MEDIA_ERR_LOG("Invalid buffer or userSize:%u", userSize);
         return ERR_INVALID_READ;
     }
-    CHK_NULL_RETURN(audioSource_, ERROR);
+    std::shared_ptr<AudioSource> audioSource = GetAudioSource();
+    CHK_NULL_RETURN(audioSource, ERROR);
 
     if (status_ != RECORDING) {
         MEDIA_ERR_LOG("ILLEGAL_STATE  status_:%u", status_);
-        return ERR_INVALID_READ;
+        return ERR_ILLEGAL_STATE;
     }
     int32_t readLen = ERR_INVALID_READ;
-    if (info_.audioFormat == PCM || info_.audioFormat == AUDIO_DEFAULT) {
+    if (info_.audioFormat == PCM ||
+        info_.audioFormat == AUDIO_DEFAULT ||
+        info_.deviceType == AUDIO_DEVICE_MIC_VIRTUAL) {
         AudioFrame frame;
         frame.buffer = buffer;
         frame.bufferLen = userSize;
-        readLen = audioSource_->ReadFrame(frame, isBlockingRead);
-        if (readLen == ERR_INVALID_READ) {
+        readLen = audioSource->ReadFrame(frame, isBlockingRead);
+        if (readLen == 0) {
+            return ERR_INVALID_READ;
+        } else if (readLen == ERR_INVALID_READ) {
             MEDIA_ERR_LOG("audioSource_ ReadFrame fail,ret:0x%x", readLen);
             return ERR_INVALID_READ;
         }
@@ -231,7 +262,6 @@ int32_t AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize, bool isBlockin
             MEDIA_ERR_LOG("audioEncoder_ ReadStream fail, audioEncoder_ value is nullptr");
             return ERR_INVALID_READ;
         }
-
         readLen = audioEncoder_->ReadStream(stream, isBlockingRead);
         if (readLen == ERR_INVALID_READ) {
             MEDIA_ERR_LOG("audioEncoder_ ReadStream fail,ret:0x%x", readLen);
@@ -246,7 +276,8 @@ int32_t AudioCapturerImpl::Read(uint8_t *buffer, size_t userSize, bool isBlockin
 
 bool AudioCapturerImpl::StopInternal()
 {
-    CHK_NULL_RETURN(audioSource_, false);
+    std::shared_ptr<AudioSource> audioSource = GetAudioSource();
+    CHK_NULL_RETURN(audioSource, false);
     int32_t ret;
     if (audioEncoder_ != nullptr) {
         MEDIA_INFO_LOG("audioEncoder Stop");
@@ -257,7 +288,7 @@ bool AudioCapturerImpl::StopInternal()
         }
     }
     MEDIA_INFO_LOG("audioSource Stop");
-    ret = audioSource_->Stop();
+    ret = audioSource->Stop();
     if (ret != SUCCESS) {
         MEDIA_ERR_LOG("audioSource_ stop fail,ret:0x%x", ret);
         return false;
@@ -265,6 +296,17 @@ bool AudioCapturerImpl::StopInternal()
     MEDIA_INFO_LOG("Stop Audio Capturer SUCCESS");
     status_ = STOPPED;
     return true;
+}
+
+std::shared_ptr<AudioSource> AudioCapturerImpl::GetAudioSource()
+{
+    if (info_.deviceType == AUDIO_DEVICE_MIC_LOCAL) {
+        return audioSourceLocal_;
+    }
+    if (info_.deviceType == AUDIO_DEVICE_MIC_VIRTUAL) {
+        return audioSourceVirtual_;
+    }
+    return nullptr;
 }
 
 bool AudioCapturerImpl::Stop()
@@ -302,7 +344,8 @@ bool AudioCapturerImpl::Release()
             return false;
         }
     }
-    ret = (audioSource_ != nullptr) ? audioSource_->Release() : SUCCESS;
+    std::shared_ptr<AudioSource> audioSource = GetAudioSource();
+    ret = (audioSource != nullptr) ? audioSource->Release() : SUCCESS;
     if (ret != SUCCESS) {
         MEDIA_ERR_LOG("audioSource_ Release failed:0x%x", ret);
         return false;
@@ -310,6 +353,14 @@ bool AudioCapturerImpl::Release()
     status_ = RELEASED;
     MEDIA_INFO_LOG("Release Audio Capturer SUCCESS");
     return true;
+}
+void AudioCapturerImpl::SetDeviceChangeCallback(std::shared_ptr<AudioManagerDeviceChangeCallback> callback)
+{
+    std::shared_ptr<AudioManagerDeviceChangeCallbackImpl> callbackImp = \
+        std::make_shared<AudioManagerDeviceChangeCallbackImpl>(callback);
+    OHOS::HDI::DistributedAudio::Audio::V1_0::AudioManagerInterfaceImpl::GetAudioManager() \
+        ->SetDeviceChangeCallback(callbackImp);
+    MEDIA_INFO_LOG("set AudioSourceVirtual callback success!");
 }
 }  // namespace Audio
 }  // namespace OHOS

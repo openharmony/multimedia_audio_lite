@@ -13,7 +13,7 @@
 import("//build/lite/config/component/lite_component.gni")
 import("//build/lite/ndk/ndk.gni")
 
-static_library("audio_capturer_server") {
+shared_library("audio_capturer_server") {
   sources = [
     "server/src/audio_capturer_samgr.cpp",
     "server/src/audio_capturer_server.cpp",
@@ -49,7 +49,9 @@ shared_library("audio_capturer_impl") {
   sources = [
     "impl/audio_capturer_impl.cpp",
     "impl/audio_encoder/audio_encoder.cpp",
-    "impl/audio_source/audio_source.cpp",
+    "impl/audio_source/src/local/audio_source_local.cpp",
+    "impl/audio_source/src/virtual/audio_source_virtural.cpp",
+    "impl/audio_source/src/audio_source.cpp",
   ]
   cflags = [ "-fPIC" ]
   cflags += [ "-Werror" ]
@@ -57,6 +59,8 @@ shared_library("audio_capturer_impl") {
   include_dirs = [
     "//foundation/multimedia/audio_lite/services/impl/audio_encoder/include",
     "//foundation/multimedia/audio_lite/services/impl/audio_source/include",
+    "//foundation/multimedia/audio_lite/services/impl/audio_source/include/local",
+    "//foundation/multimedia/audio_lite/services/impl/audio_source/include/virtual",
     "//foundation/multimedia/audio_lite/frameworks/binder",
     "//foundation/multimedia/audio_lite/interfaces/kits",
     "//drivers/peripheral/audio/interfaces/include",
@@ -64,6 +68,10 @@ shared_library("audio_capturer_impl") {
     "//drivers/peripheral/display/interfaces/include",
     "//drivers/peripheral/base",
     "//foundation/multimedia/media_utils_lite/interfaces/kits",
+    "${ohos_board_adapter_dir}/media/audio/source/distributed_audio/hdf_interfaces/distributed_audio/audio/v1_0",
+    "${ohos_board_adapter_dir}/media/audio/source/distributed_audio/hdf_interfaces/distributed_audio/audioext/v1_0",
+    "${ohos_board_adapter_dir}/media/audio/source/distributed_audio/hdf_service/distributed_audio/hdi_service/audio/v1_0/include",
+    "${ohos_board_adapter_dir}/media/audio/source/distributed_audio/hdf_service/distributed_audio/hdi_service/audio_ext/v1_0/include"
   ]
 
   outdir = rebase_path("$root_out_dir")
@@ -75,10 +83,11 @@ shared_library("audio_capturer_impl") {
     "-lpthread",
   ]
   deps = [
-    "//device/soc/hisilicon/common/hal/media:hardware_media_sdk",
+    "${ohos_board_adapter_dir}/media:hardware_media_sdk",
     "//foundation/graphic/surface_lite:surface_lite",
     "//foundation/multimedia/media_utils_lite:media_common",
     "//third_party/bounds_checking_function:libsec_shared",
+    "${ohos_board_adapter_dir}/media/audio/source/distributed_audio/hdf_service/distributed_audio:distributed_audio_entry",
   ]
 }
 

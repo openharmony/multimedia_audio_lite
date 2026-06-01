@@ -21,6 +21,7 @@
 #include "iproxy_client.h"
 #include "media_info.h"
 #include "surface.h"
+#include "ipc_skeleton.h"
 
 using OHOS::Surface;
 using std::mutex;
@@ -35,10 +36,11 @@ class AudioCapturer::AudioCapturerClient : public IBufferConsumerListener {
 public:
     AudioCapturerClient();
     ~AudioCapturerClient();
+    static int32_t AudioCapturerCallback(uint32_t code, IpcIo *data, IpcIo *reply, MessageOption option);
     static bool GetMinFrameCount(int32_t sampleRate, int32_t channelCount, AudioCodecFormat audioFormat,
                                 size_t &frameCount);
     uint64_t GetFrameCount();
-    int32_t SetCapturerInfo(const AudioCapturerInfo info);
+    int32_t SetCapturerInfo(const AudioCapturerInfo &info);
     int32_t GetCapturerInfo(AudioCapturerInfo &info);
     bool Start();
     int32_t Read(uint8_t *buffer, size_t userSize, bool isBlockingRead);
@@ -48,20 +50,21 @@ public:
     bool Release();
     void OnBufferAvailable() override;
     static AudioCapturerClient *GetInstance();
-
+    void SetDeviceChangeCallback(const std::shared_ptr<AudioManagerDeviceChangeCallback> &callback);
 private:
-    bool InitAudioCapturerClient();
     IClientProxy *GetIClientProxy();
     int32_t InitSurface(void);
     int32_t DeleteSurface(void);
     void ReleaseAllBuffer();
-
-    SvcIdentity sid_;
+    std::string SerializeCaptureInfo(const AudioCapturerInfo &info);
+    SvcIdentity *sid_ = nullptr;
+    IpcObjectStub objectStub_;
     IClientProxy *proxy_ = nullptr;
     std::shared_ptr<Surface> surface_;
     std::mutex lock_;
     Timestamp curTimestamp_;
     bool timeStampValid_ = false;
+    std::shared_ptr<AudioManagerDeviceChangeCallback> callback_ = nullptr;
 };
 }  // namespace Audio
 }  // namespace OHOS

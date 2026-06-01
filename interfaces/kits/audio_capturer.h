@@ -44,6 +44,7 @@
 
 #include "media_errors.h"
 #include "media_info.h"
+#include "audio_manager_callback.h"
 
 namespace OHOS {
 namespace Audio {
@@ -65,10 +66,13 @@ struct AudioCapturerInfo {
     int32_t channelCount = 0;
     /** Bit rate */
     int32_t bitRate = 0;
+    /** Bit rate */
+    std::string deviceId = "";
     /** Audio stream type */
     AudioStreamType streamType = TYPE_MEDIA;
     /** Bit width */
     AudioBitWidth bitWidth = BIT_WIDTH_16;
+    AudioSystemDeviceType deviceType = AUDIO_DEVICE_MIC_LOCAL;
 };
 
 /**
@@ -165,7 +169,7 @@ public:
      * @since 1.0
      * @version 1.0
      */
-    int32_t SetCapturerInfo(const AudioCapturerInfo info);
+    int32_t SetCapturerInfo(const AudioCapturerInfo &info);
 
     /**
      * @brief Obtains audio capture parameters.
@@ -246,9 +250,12 @@ public:
      */
     bool Release();
 
+    void SetDeviceChangeCallback(const std::shared_ptr<AudioManagerDeviceChangeCallback> &callback);
+
 private:
     class AudioCapturerClient;
     std::unique_ptr<AudioCapturerClient> impl_;
+    std::shared_ptr<AudioManagerDeviceChangeCallback> deviceChangeCallback_ = nullptr;
 };
 }  // namespace Audio
 }  // namespace OHOS

@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "audio_capturer_client.h"
 
 #include "audio_capturer.h"
 #include "media_log.h"
@@ -65,7 +66,12 @@ bool AudioCapturer::AudioCapturerClient::GetAudioTime(Timestamp &timestamp, Time
     return impl_->GetTimestamp(timestamp, base);
 }
 
-int32_t AudioCapturer::AudioCapturerClient::SetCapturerInfo(const AudioCapturerInfo info)
+void AudioCapturer::AudioCapturerClient::SetDeviceChangeCallback( \
+    const std::shared_ptr<AudioManagerDeviceChangeCallback> &callback)
+{
+}
+
+int32_t AudioCapturer::AudioCapturerClient::SetCapturerInfo(const AudioCapturerInfo &info)
 {
     if (impl_ == nullptr) {
         MEDIA_ERR_LOG("impl_ null");

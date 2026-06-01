@@ -32,7 +32,7 @@ public:
     virtual ~AudioCapturerClient();
     static bool GetMinFrameCount(int32_t sampleRate, int32_t channelCount, AudioCodecFormat audioFormat,
                                  size_t &frameCount);
-    int32_t SetCapturerInfo(const AudioCapturerInfo info);
+    int32_t SetCapturerInfo(const AudioCapturerInfo &info);
     int32_t GetCapturerInfo(AudioCapturerInfo &info);
     bool Start();
     bool Stop();
@@ -41,7 +41,7 @@ public:
     uint64_t GetFrameCount();
     State GetStatus();
     bool GetAudioTime(Timestamp &timestamp, Timestamp::Timebase base);
-
+    void SetDeviceChangeCallback(const std::shared_ptr<AudioManagerDeviceChangeCallback> &callback);
 private:
     std::unique_ptr<AudioCapturerImpl> impl_;
 };

@@ -16,6 +16,7 @@
 #include "audio_capturer_client.h"
 
 #include <cstdio>
+#include <sstream>
 #include "audio_capturer_server.h"
 #include "media_log.h"
 #include "ipc_skeleton.h"
@@ -33,9 +34,12 @@ using namespace std;
 namespace OHOS {
 namespace Audio {
 constexpr int32_t SURFACE_QUEUE_SIZE = 5;
+// hihopeos add record buffer use surface buffer
+// when channel = 2, ai output buffer 2048*2 + 12 > 4096, surface size must be 8192
 constexpr int32_t SURFACE_SIZE = 8192;
 constexpr int32_t SURFACE_HEIGHT = 1;
 constexpr int32_t SURFACE_WIDTH = 8192;
+constexpr int32_t WAIT_SURFACE_BUFFER_US = 10;
 
 struct CallBackPara {
     int funcId;
@@ -47,6 +51,24 @@ AudioCapturer::AudioCapturerClient *AudioCapturer::AudioCapturerClient::GetInsta
 {
     static AudioCapturerClient client;
     return &client;
+}
+
+static void DeserializeCaptureInfo(const char *str, AudioCapturerInfo *info)
+{
+    std::stringstream ss(str);
+    int32_t inputSource = 0;
+    int32_t audioFormat = 0;
+    int32_t streamType = 0;
+    int32_t bitWidth = 0;
+    int32_t deviceType = 0;
+    ss >> inputSource >> audioFormat >> info->sampleRate
+        >> info->channelCount >> info->bitRate >> info->deviceId
+        >> streamType >> bitWidth >> deviceType;
+    info->inputSource = static_cast<AudioSourceType>(inputSource);
+    info->audioFormat = static_cast<AudioCodecFormat>(audioFormat);
+    info->streamType = static_cast<AudioStreamType>(streamType);
+    info->bitWidth = static_cast<AudioBitWidth>(bitWidth);
+    info->deviceType = static_cast<AudioSystemDeviceType>(deviceType);
 }
 
 static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
@@ -86,11 +108,14 @@ static int32_t ProxyCallbackFunc(void *owner, int code, IpcIo *reply)
                 MEDIA_INFO_LOG("Readbuffer info failed");
                 return -1;
             }
-            (void)memcpy_s(para->data, sizeof(AudioCapturerInfo), bufferAdd, size);
+            DeserializeCaptureInfo(static_cast<const char *>(bufferAdd),
+                static_cast<AudioCapturerInfo *>(para->data));
             break;
         }
         case AUD_CAP_FUNC_GET_MIN_FRAME_COUNT:
             ReadUint32(reply, reinterpret_cast<uint32_t*>(para->data));
+            break;
+        case AUD_CAP_FUNC_SET_DEVICE_CHANGE_CALLBACK:
             break;
         default :
             MEDIA_INFO_LOG("Callback, unknown funcId = %d", para->funcId);
@@ -113,6 +138,7 @@ int32_t AudioCapturer::AudioCapturerClient::InitSurface(void)
     surface->SetWidthAndHeight(SURFACE_WIDTH, SURFACE_HEIGHT);
     surface->SetQueueSize(SURFACE_QUEUE_SIZE);
     surface->SetSize(SURFACE_SIZE);
+    surface->SetUsage(BUFFER_CONSUMER_USAGE_HARDWARE);
     return 0;
 }
 
@@ -270,13 +296,31 @@ bool AudioCapturer::AudioCapturerClient::GetAudioTime(Timestamp &timestamp, Time
     return true;
 }
 
-int32_t AudioCapturer::AudioCapturerClient::SetCapturerInfo(const AudioCapturerInfo info)
+std::string AudioCapturer::AudioCapturerClient::SerializeCaptureInfo(const AudioCapturerInfo &info)
+{
+    std::stringstream ss;
+    ss << static_cast<int32_t>(info.inputSource) << ' '
+        << static_cast<int32_t>(info.audioFormat) << ' '
+        << info.sampleRate << ' '
+        << info.channelCount << ' '
+        << info.bitRate << ' '
+        << info.deviceId << ' '
+        << static_cast<int32_t>(info.streamType) << ' '
+        << static_cast<int32_t>(info.bitWidth) << ' '
+        << static_cast<int32_t>(info.deviceType);
+    MEDIA_ERR_LOG("info.streamType = %d, info.bitWidth = %d, info.deviceType = %d",
+        info.streamType, info.bitWidth, info.deviceType);
+    return ss.str();
+}
+
+int32_t AudioCapturer::AudioCapturerClient::SetCapturerInfo(const AudioCapturerInfo &info)
 {
     IpcIo io;
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
-    WriteUint32(&io, sizeof(info));
-    WriteBuffer(&io, &info, sizeof(info));
+    std::string value = SerializeCaptureInfo(info);
+    WriteUint32(&io, value.size());
+    WriteBuffer(&io, value.c_str(), value.size());
     CallBackPara para = {.funcId = AUD_CAP_FUNC_SET_INFO, .ret = MEDIA_IPC_FAILED};
 
     if (proxy_ == nullptr) {
@@ -318,12 +362,12 @@ bool AudioCapturer::AudioCapturerClient::Start()
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_START, .ret = MEDIA_IPC_FAILED};
-    
+
     if (proxy_ == nullptr) {
         MEDIA_ERR_LOG("Start failed, proxy_ value is nullptr");
         return false;
     }
-    
+
     int32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_START, &io, &para, ProxyCallbackFunc);
     if (ret) {
         MEDIA_ERR_LOG("Start failed, ret=%d", ret);
@@ -339,7 +383,7 @@ bool AudioCapturer::AudioCapturerClient::Stop()
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_STOP, .ret = MEDIA_IPC_FAILED};
-    
+
     if (proxy_ == nullptr) {
         MEDIA_ERR_LOG("Stop failed, proxy_ value is nullptr");
         return false;
@@ -360,7 +404,7 @@ bool AudioCapturer::AudioCapturerClient::Release()
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 0);
     CallBackPara para = {.funcId = AUD_CAP_FUNC_RELEASE, .ret = MEDIA_IPC_FAILED};
-    
+
     if (proxy_ == nullptr) {
         MEDIA_ERR_LOG("Release failed, proxy_ value is nullptr");
         return false;
@@ -386,7 +430,7 @@ int32_t AudioCapturer::AudioCapturerClient::Read(uint8_t *buffer, size_t userSiz
         SurfaceBuffer *surfaceBuf = surface_->AcquireBuffer();
         if (surfaceBuf == nullptr) {
             if (isBlockingRead) {
-                usleep(10000); // indicates 10000 microseconds
+                usleep(WAIT_SURFACE_BUFFER_US);
                 continue;
             } else {
                 break;
@@ -425,5 +469,80 @@ IClientProxy *AudioCapturer::AudioCapturerClient::GetIClientProxy()
 {
     return proxy_;
 }
+
+int32_t AudioCapturer::AudioCapturerClient::AudioCapturerCallback(uint32_t code, IpcIo *data,
+    IpcIo *reply, MessageOption option)
+{
+    auto playerCallback = static_cast<AudioManagerDeviceChangeCallback *>(option.args);
+    if (playerCallback == nullptr) {
+        MEDIA_ERR_LOG("call back error, playerCallback is null");
+        return -1;
+    }
+    MEDIA_INFO_LOG("AudioCapturerCallback, funcId=%d\n", code);
+    switch (code) {
+        case ON_DEVICE_CHANGED: {
+            uint32_t dhId;
+            ReadUint32(data, &dhId);
+            uint32_t size = 0;
+            ReadUint32(data, &size);
+            void *bufferAdd = (void *)ReadBuffer(data, (size_t)size);
+            if (bufferAdd == nullptr || !size) {
+                MEDIA_INFO_LOG("Readbuffer info failed");
+                return -1;
+            }
+            int32_t deviceType;
+            ReadInt32(data, &deviceType);
+            int32_t connectStatus;
+            ReadInt32(data, &connectStatus);
+            AudioDeviceInfo info;
+            info.dhId = dhId;
+            info.deviceName = std::string((char *)bufferAdd);
+            info.deviceType = (AudioSystemDeviceType)deviceType;
+            info.connectStatus = (DeviceConnectStatus)connectStatus;
+            playerCallback->OnDeviceChange(info);
+            MEDIA_INFO_LOG("AudioCapturerClient AudioCapturerCallback, ON_DEVICE_CHANGED success\n");
+            break;
+        }
+        case ON_READ_DATA_FAILED: {
+            playerCallback->OnReadDataFailed();
+            MEDIA_INFO_LOG("AudioCapturerClient AudioCapturerCallback, ON_READ_DATA_FAILED success\n");
+            break;
+        }
+        default: {
+            MEDIA_ERR_LOG("unsupported funId\n");
+            break;
+        }
+    }
+    return 0;
+}
+
+void AudioCapturer::AudioCapturerClient::SetDeviceChangeCallback( \
+    const std::shared_ptr<AudioManagerDeviceChangeCallback> &callback)
+{
+    if (sid_ == nullptr) {
+        sid_ = new SvcIdentity();
+    }
+    callback_ = callback;
+    objectStub_.func = AudioCapturerCallback;
+    objectStub_.args = (void *)callback_.get();
+    objectStub_.isRemote = false;
+    sid_->handle = IPC_INVALID_HANDLE;
+    sid_->token = SERVICE_TYPE_ANONYMOUS;
+    sid_->cookie = reinterpret_cast<uintptr_t>(&objectStub_);
+    IpcIo io;
+    uint8_t tmpData[DEFAULT_IPC_SIZE];
+    IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 1);
+    bool writeRemote = WriteRemoteObject(&io, sid_);
+    if (!writeRemote) {
+        return;
+    }
+    CallBackPara para = {};
+    para.funcId = AUD_CAP_FUNC_SET_DEVICE_CHANGE_CALLBACK;
+    uint32_t ans = proxy_->Invoke(proxy_, AUD_CAP_FUNC_SET_DEVICE_CHANGE_CALLBACK, &io, &para, ProxyCallbackFunc);
+    if (ans != 0) {
+        MEDIA_ERR_LOG("SetDeviceChangeCallback : Invoke failed, ret=%u\n", ans);
+    }
+}
+
 }  // namespace Audio
 }  // namespace OHOS

@@ -75,11 +75,6 @@ static TaskConfig GetTaskConfig(Service *service)
 
 static int32 Invoke(IServerProxy *iProxy, int funcId, void *origin, IpcIo *req, IpcIo *reply)
 {
-    if (origin == nullptr) {
-        MEDIA_ERR_LOG("Invoke: origin is nullptr");
-        return FALSE;
-    }
-
     pid_t pid = GetCallingPid();
     AudioCapturerServer *mng = AudioCapturerServer::GetInstance();
     if (mng == nullptr) {

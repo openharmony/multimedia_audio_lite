@@ -18,8 +18,8 @@
 
 #include <mutex>
 #include <sys/time.h>
-
 #include "audio_capturer.h"
+#include "media_info.h"
 
 namespace OHOS {
 namespace Audio {
@@ -31,14 +31,16 @@ enum AudioChannel {
 
 class AudioSource;
 class AudioEncoder;
+class AudioSourceLocal;
+class AudioSourceVirtual;
 class AudioCapturerImpl {
 public:
     AudioCapturerImpl();
     virtual ~AudioCapturerImpl();
     static bool GetMinFrameCount(int32_t sampleRate, int32_t channelCount, AudioCodecFormat audioFormat,
                                  size_t &frameCount);
-    int32_t SetCapturerInfo(const AudioCapturerInfo info);
-    int32_t GetCapturerInfo(AudioCapturerInfo &info);
+    int32_t SetCapturerInfo(const OHOS::Audio::AudioCapturerInfo &info);
+    int32_t GetCapturerInfo(OHOS::Audio::AudioCapturerInfo &info);
     bool Record();
     bool Stop();
     bool Release();
@@ -46,14 +48,16 @@ public:
     uint64_t GetFrameCount();
     State GetStatus();
     bool GetTimestamp(Timestamp &timestamp, Timestamp::Timebase base);
-
+    void SetDeviceChangeCallback(std::shared_ptr<AudioManagerDeviceChangeCallback> callback);
 private:
     bool StopInternal();
-
-    std::unique_ptr<AudioSource> audioSource_;
+    void InitAudioSourceByDeviceType(AudioSystemDeviceType deviceType, std::string deviceId);
+    std::shared_ptr<AudioSource> GetAudioSource();
+    std::shared_ptr<AudioSourceLocal> audioSourceLocal_;
+    std::shared_ptr<AudioSourceVirtual> audioSourceVirtual_;
     std::unique_ptr<AudioEncoder> audioEncoder_;
     State status_ = INITIALIZED;
-    AudioCapturerInfo info_;
+    OHOS::Audio::AudioCapturerInfo info_;
     Timestamp timestamp_;
     int32_t inputDeviceId_ = 0;
     std::mutex mutex_;
