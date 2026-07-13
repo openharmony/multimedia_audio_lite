@@ -17,11 +17,13 @@
 
 #include <sys/select.h>
 
+#ifdef MEDIA_INTERFACE_V1_0
 #include "audio_source_virtual.h"
+#include "audio_manager_interface_impl.h"
+#endif
 #include "audio_source_local.h"
 #include "audio_encoder.h"
 #include "media_log.h"
-#include "audio_manager_interface_impl.h"
 
 namespace OHOS {
 namespace Audio {
@@ -40,7 +42,9 @@ const uint64_t TIME_CONVERSION_NS_US = 1000; /* ns  to us  */
 
 AudioCapturerImpl::AudioCapturerImpl()
     :audioSourceLocal_(nullptr),
-     audioSourceVirtual_(nullptr),
+#ifdef MEDIA_INTERFACE_V1_0
+    audioSourceVirtual_(nullptr),
+#endif
      audioEncoder_(nullptr)
 {
     MEDIA_DEBUG_LOG("ctor");
@@ -117,12 +121,14 @@ void AudioCapturerImpl::InitAudioSourceByDeviceType(AudioSystemDeviceType device
             audioSourceLocal_ = std::make_shared<AudioSourceLocal>();
         }
     }
+#ifdef MEDIA_INTERFACE_V1_0
     if (deviceType == AUDIO_DEVICE_MIC_VIRTUAL) {
         if (audioSourceVirtual_ == nullptr) {
             MEDIA_INFO_LOG("create AudioSourceVirtual success!");
             audioSourceVirtual_ = std::make_shared<AudioSourceVirtual>(deviceId);
         }
     }
+#endif
 }
 
 int32_t AudioCapturerImpl::SetCapturerInfo(const OHOS::Audio::AudioCapturerInfo &info)
@@ -303,9 +309,11 @@ std::shared_ptr<AudioSource> AudioCapturerImpl::GetAudioSource()
     if (info_.deviceType == AUDIO_DEVICE_MIC_LOCAL) {
         return audioSourceLocal_;
     }
+#ifdef MEDIA_INTERFACE_V1_0
     if (info_.deviceType == AUDIO_DEVICE_MIC_VIRTUAL) {
         return audioSourceVirtual_;
     }
+#endif
     return nullptr;
 }
 
@@ -356,10 +364,12 @@ bool AudioCapturerImpl::Release()
 }
 void AudioCapturerImpl::SetDeviceChangeCallback(std::shared_ptr<AudioManagerDeviceChangeCallback> callback)
 {
+#ifdef MEDIA_INTERFACE_V1_0
     std::shared_ptr<AudioManagerDeviceChangeCallbackImpl> callbackImp = \
         std::make_shared<AudioManagerDeviceChangeCallbackImpl>(callback);
     OHOS::HDI::DistributedAudio::Audio::V1_0::AudioManagerInterfaceImpl::GetAudioManager() \
         ->SetDeviceChangeCallback(callbackImp);
+#endif
     MEDIA_INFO_LOG("set AudioSourceVirtual callback success!");
 }
 }  // namespace Audio

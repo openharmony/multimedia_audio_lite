@@ -185,12 +185,26 @@ int32_t AudioEncoder::Initialize(const AudioEncodeConfig &config)
         MEDIA_ERR_LOG("InitAudioEncoderAttr failed:%d", ret);
         return ret;
     }
+#ifdef MEDIA_INTERFACE_V1_0
     const char *audioEncName = "codec.aac.hardware.encoder";
     ret = CodecCreate(audioEncName, encAttr_, AUDIO_ENC_PARAM_NUM, &encHandle_);
     if (ret != SUCCESS) {
         MEDIA_ERR_LOG("CodecCreate failed:0x%x", ret);
         return ret;
     }
+#else
+    ret = CodecCreateByType(domainKind_, codecMime_, &encHandle_);
+    if (ret != SUCCESS) {
+        MEDIA_ERR_LOG("CodecCreateByType failed:0x%x", ret);
+        return ret;
+    }
+    ret = CodecSetParameter(encHandle_, encAttr_, AUDIO_ENC_PARAM_NUM);
+    if (ret != SUCCESS) {
+        CodecDestroy(encHandle_);
+        MEDIA_ERR_LOG("CodecSetParameter failed:0x%x", ret);
+        return ret;
+    }
+#endif
     initialized_ = true;
     return SUCCESS;
 }
@@ -254,9 +268,11 @@ int32_t AudioEncoder::ReadStream(AudioStream &stream, bool isBlockingRead)
         timeoutMs = 0;
     }
     OutputInfo outInfo;
+#ifdef MEDIA_INTERFACE_V1_0
     CodecBufferInfo outBuf = {};
     outInfo.bufferCnt = 1;
     outInfo.buffers = &outBuf;
+#endif
     int32_t ret = CodecDequeueOutput(encHandle_, timeoutMs, nullptr, &outInfo);
     if (ret != SUCCESS && outInfo.buffers[0].addr == nullptr) {
         MEDIA_ERR_LOG("CodecDequeueOutput failed:0x%x", ret);

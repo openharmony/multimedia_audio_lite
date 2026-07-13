@@ -54,9 +54,13 @@ shared_library("audio_capturer_lite") {
   public_deps = [
     "//foundation/multimedia/media_utils_lite:media_common",
     "//third_party/bounds_checking_function:libsec_shared",
-    "//third_party/alsa-lib:asound_shared",
-    "//third_party/alsa-utils:alsa_utils_lite"
   ]
+  if (defined(media_interface_upgrade)) {
+    public_deps += [
+      "//third_party/alsa-lib:asound_shared",
+      "//third_party/alsa-utils:alsa_utils_lite"
+    ]
+  }
 }
 
 config("audio_capturer_public_config") {
