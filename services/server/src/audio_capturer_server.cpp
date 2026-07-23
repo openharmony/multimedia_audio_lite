@@ -14,6 +14,7 @@
  */
 
 #include "audio_capturer_server.h"
+#include <cstring>
 #include <sstream>
 #include "audio_capturer_impl.h"
 #include "media_errors.h"
@@ -165,8 +166,9 @@ int32_t AudioCapturerServer::SendDeviceInfo(const AudioDeviceInfo &deviceInfo)
     int32_t size = 0;
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, size);
     WriteUint32(&io, (int32_t)deviceInfo.dhId);
-    WriteUint32(&io, deviceInfo.deviceName.size());
-    WriteBuffer(&io, deviceInfo.deviceName.c_str(), deviceInfo.deviceName.size());
+    uint32_t nameLen = strnlen(deviceInfo.deviceName, MAX_DEVICE_NAME_LEN);
+    WriteUint32(&io, nameLen);
+    WriteBuffer(&io, deviceInfo.deviceName, nameLen);
     WriteInt32(&io, (int32_t)deviceInfo.deviceType);
     WriteInt32(&io, (int32_t)deviceInfo.connectStatus);
     MessageOption option;

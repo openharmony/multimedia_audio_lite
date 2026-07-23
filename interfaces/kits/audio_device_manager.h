@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 HiSilicon (Shanghai) Technologies Co., Ltd.
+ * Copyright (c) 2026 HiSilicon (Shanghai) Technologies Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,19 +24,19 @@
 #include "media_info.h"
 
 namespace OHOS {
-    namespace Audio {
-        class AudioDeviceManager {
-        public:
-            ~AudioDeviceManager();
-            static AudioDeviceManager *GetInstance();
-            std::vector<AudioDeviceInfo> GetAllConnectDevices();
-            int32_t AddDevice(const AudioDeviceInfo &deviceinfo);
-            int32_t RemoveDevice(const AudioDeviceInfo &deviceinfo);
-        private:
-            AudioDeviceManager();
-            std::vector<AudioDeviceInfo> allDevices_;
-            std::mutex mutex_;
-        };
-    }
+namespace Audio {
+    class AudioDeviceManager {
+    public:
+        ~AudioDeviceManager();
+        static AudioDeviceManager *GetInstance();
+        std::vector<AudioDeviceInfo> GetAllConnectDevices();
+        int32_t AddDevice(const AudioDeviceInfo &deviceinfo);
+        int32_t RemoveDevice(const AudioDeviceInfo &deviceinfo);
+    private:
+        AudioDeviceManager();
+        std::vector<AudioDeviceInfo> allDevices_;
+        std::mutex mutex_;
+    };
+}
 }
 #endif

@@ -16,6 +16,7 @@
 #ifndef FRAMEWORKS_AUDIO_CAPTURER_CLIENT_H
 #define FRAMEWORKS_AUDIO_CAPTURER_CLIENT_H
 
+#include <memory>
 #include <mutex>
 #include "audio_capturer.h"
 #include "iproxy_client.h"
@@ -57,14 +58,16 @@ private:
     int32_t DeleteSurface(void);
     void ReleaseAllBuffer();
     std::string SerializeCaptureInfo(const AudioCapturerInfo &info);
-    SvcIdentity *sid_ = nullptr;
+    std::unique_ptr<SvcIdentity> sid_;
     IpcObjectStub objectStub_;
     IClientProxy *proxy_ = nullptr;
     std::shared_ptr<Surface> surface_;
     std::mutex lock_;
     Timestamp curTimestamp_;
     bool timeStampValid_ = false;
+    std::mutex callbackMutex_;
     std::shared_ptr<AudioManagerDeviceChangeCallback> callback_ = nullptr;
+    std::weak_ptr<AudioManagerDeviceChangeCallback> weakCallback_;
 };
 }  // namespace Audio
 }  // namespace OHOS

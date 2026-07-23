@@ -32,6 +32,10 @@ AudioSourceLocal::AudioSourceLocal()
         g_audioManager = GetAudioManagerFuncs();
         MEDIA_DEBUG_LOG("g_audioManager");
     }
+    if (g_audioManager == nullptr) {
+        MEDIA_ERR_LOG("AudioSourceLocal g_audioManager is nullptr");
+        return;
+    }
     int size = 0;
     struct AudioAdapterDescriptor *descs = nullptr;
     g_audioManager->GetAllAdapters(g_audioManager, &descs, &size);
@@ -306,6 +310,10 @@ int32_t AudioSourceLocal::Release()
         return ret;
     }
     if (audioCapture_) {
+        if (audioAdapter_ == nullptr) {
+            MEDIA_ERR_LOG("audioAdapter_ is NULL");
+            return ERR_ILLEGAL_STATE;
+        }
         audioAdapter_->DestroyCapture(audioAdapter_, audioCapture_);
         audioCapture_ = nullptr;
     }

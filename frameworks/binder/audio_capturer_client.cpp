@@ -39,7 +39,7 @@ constexpr int32_t SURFACE_QUEUE_SIZE = 5;
 constexpr int32_t SURFACE_SIZE = 8192;
 constexpr int32_t SURFACE_HEIGHT = 1;
 constexpr int32_t SURFACE_WIDTH = 8192;
-constexpr int32_t WAIT_SURFACE_BUFFER_US = 10;
+constexpr int32_t WAIT_SURFACE_BUFFER_US = 10000;
 
 struct CallBackPara {
     int funcId;
@@ -218,6 +218,13 @@ AudioCapturer::AudioCapturerClient::~AudioCapturerClient()
     uint32_t ret = proxy_->Invoke(proxy_, AUD_CAP_FUNC_DISCONNECT, &io, &para, ProxyCallbackFunc);
     if (ret) {
         MEDIA_ERR_LOG("Disconnect audioCapturer server failed, ret=%d", ret);
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(callbackMutex_);
+        weakCallback_.reset();
+        callback_.reset();
+        objectStub_.args = nullptr;
     }
 
     /* release all surface buffer */
@@ -470,48 +477,65 @@ IClientProxy *AudioCapturer::AudioCapturerClient::GetIClientProxy()
     return proxy_;
 }
 
+static int32_t HandleDeviceChanged(IpcIo *data,
+    const std::shared_ptr<AudioManagerDeviceChangeCallback> &callback)
+{
+    uint32_t dhId;
+    ReadUint32(data, &dhId);
+    uint32_t size = 0;
+    ReadUint32(data, &size);
+    void *bufferAdd = (void *)ReadBuffer(data, (size_t)size);
+    if (bufferAdd == nullptr || size == 0) {
+        MEDIA_INFO_LOG("Readbuffer info failed");
+        return -1;
+    }
+    int32_t deviceType;
+    ReadInt32(data, &deviceType);
+    int32_t connectStatus;
+    ReadInt32(data, &connectStatus);
+    AudioDeviceInfo info = {};
+    info.dhId = dhId;
+    uint32_t copyLen = (size >= MAX_DEVICE_NAME_LEN) ? (MAX_DEVICE_NAME_LEN - 1) : size;
+    if (memcpy_s(info.deviceName, MAX_DEVICE_NAME_LEN, bufferAdd, copyLen) != EOK) {
+        MEDIA_ERR_LOG("Copy deviceName failed");
+        return -1;
+    }
+    info.deviceName[copyLen] = '\0';
+    info.deviceType = static_cast<AudioSystemDeviceType>(deviceType);
+    info.connectStatus = static_cast<DeviceConnectStatus>(connectStatus);
+    callback->OnDeviceChange(info);
+    MEDIA_INFO_LOG("AudioCapturerClient AudioCapturerCallback, ON_DEVICE_CHANGED success\n");
+    return 0;
+}
+
 int32_t AudioCapturer::AudioCapturerClient::AudioCapturerCallback(uint32_t code, IpcIo *data,
     IpcIo *reply, MessageOption option)
 {
-    auto playerCallback = static_cast<AudioManagerDeviceChangeCallback *>(option.args);
+    auto *client = static_cast<AudioCapturerClient *>(option.args);
+    if (client == nullptr) {
+        MEDIA_ERR_LOG("call back error, client is null");
+        return -1;
+    }
+    std::shared_ptr<AudioManagerDeviceChangeCallback> playerCallback;
+    {
+        std::lock_guard<std::mutex> lock(client->callbackMutex_);
+        playerCallback = client->weakCallback_.lock();
+    }
     if (playerCallback == nullptr) {
         MEDIA_ERR_LOG("call back error, playerCallback is null");
         return -1;
     }
     MEDIA_INFO_LOG("AudioCapturerCallback, funcId=%d\n", code);
     switch (code) {
-        case ON_DEVICE_CHANGED: {
-            uint32_t dhId;
-            ReadUint32(data, &dhId);
-            uint32_t size = 0;
-            ReadUint32(data, &size);
-            void *bufferAdd = (void *)ReadBuffer(data, (size_t)size);
-            if (bufferAdd == nullptr || !size) {
-                MEDIA_INFO_LOG("Readbuffer info failed");
-                return -1;
-            }
-            int32_t deviceType;
-            ReadInt32(data, &deviceType);
-            int32_t connectStatus;
-            ReadInt32(data, &connectStatus);
-            AudioDeviceInfo info;
-            info.dhId = dhId;
-            info.deviceName = std::string((char *)bufferAdd);
-            info.deviceType = (AudioSystemDeviceType)deviceType;
-            info.connectStatus = (DeviceConnectStatus)connectStatus;
-            playerCallback->OnDeviceChange(info);
-            MEDIA_INFO_LOG("AudioCapturerClient AudioCapturerCallback, ON_DEVICE_CHANGED success\n");
-            break;
-        }
-        case ON_READ_DATA_FAILED: {
+        case ON_DEVICE_CHANGED:
+            return HandleDeviceChanged(data, playerCallback);
+        case ON_READ_DATA_FAILED:
             playerCallback->OnReadDataFailed();
             MEDIA_INFO_LOG("AudioCapturerClient AudioCapturerCallback, ON_READ_DATA_FAILED success\n");
             break;
-        }
-        default: {
+        default:
             MEDIA_ERR_LOG("unsupported funId\n");
             break;
-        }
     }
     return 0;
 }
@@ -520,20 +544,28 @@ void AudioCapturer::AudioCapturerClient::SetDeviceChangeCallback( \
     const std::shared_ptr<AudioManagerDeviceChangeCallback> &callback)
 {
     if (sid_ == nullptr) {
-        sid_ = new SvcIdentity();
+        sid_.reset(new SvcIdentity());
     }
-    callback_ = callback;
-    objectStub_.func = AudioCapturerCallback;
-    objectStub_.args = (void *)callback_.get();
-    objectStub_.isRemote = false;
+    {
+        std::lock_guard<std::mutex> lock(callbackMutex_);
+        callback_ = callback;
+        weakCallback_ = callback_;
+        objectStub_.func = AudioCapturerCallback;
+        objectStub_.args = static_cast<void *>(this);
+        objectStub_.isRemote = false;
+    }
     sid_->handle = IPC_INVALID_HANDLE;
     sid_->token = SERVICE_TYPE_ANONYMOUS;
     sid_->cookie = reinterpret_cast<uintptr_t>(&objectStub_);
     IpcIo io;
     uint8_t tmpData[DEFAULT_IPC_SIZE];
     IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, 1);
-    bool writeRemote = WriteRemoteObject(&io, sid_);
+    bool writeRemote = WriteRemoteObject(&io, sid_.get());
     if (!writeRemote) {
+        return;
+    }
+    if (proxy_ == nullptr) {
+        MEDIA_ERR_LOG("SetDeviceChangeCallback failed, proxy_ value is nullptr");
         return;
     }
     CallBackPara para = {};

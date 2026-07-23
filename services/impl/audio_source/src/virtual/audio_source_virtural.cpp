@@ -31,6 +31,10 @@ void AudioSourceVirtual::AudioAdapterDescriptorMatch(const AudioAdapterDescripto
     for (uint32_t port = 0; port < desc.ports.size(); port++) {
             if (desc.ports[port].dir == PORT_OUT_IN \
                  && !(audioManager_->LoadAdapter(desc, audioAdapter_))) {
+                if (audioAdapter_ == nullptr) {
+                    MEDIA_ERR_LOG("LoadAdapter audioAdapter_ is nullptr");
+                    continue;
+                }
                 (void)audioAdapter_->InitAllPorts();
                 if (deviceId_ == desc.adapterName || deviceId_ == "") {
                     adapterName_ = desc.adapterName;
@@ -60,7 +64,9 @@ AudioSourceVirtual::AudioSourceVirtual(std::string deviceId)
     for (uint32_t index = 0; index < vecDescs.size(); index++) {
         OHOS::HDI::DistributedAudio::Audio::V1_0::AudioAdapterDescriptor desc = vecDescs[index];
         AudioAdapterDescriptorMatch(desc);
-        index = vecDescs.size();
+        if (!adapterName_.empty()) {
+            break;
+        }
     }
     if (audioAdapter_ == nullptr) {
         MEDIA_ERR_LOG("LoadAdapter audioAdapter_ failed!");
