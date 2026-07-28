@@ -58,7 +58,15 @@ private:
     int32_t DeleteSurface(void);
     void ReleaseAllBuffer();
     std::string SerializeCaptureInfo(const AudioCapturerInfo &info);
+
+    struct IpcStubContext {
+        std::mutex mutex;
+        std::weak_ptr<AudioManagerDeviceChangeCallback> weakCallback;
+    };
+
     std::unique_ptr<SvcIdentity> sid_;
+    /* Declared before objectStub_ so it is destroyed after objectStub_. */
+    std::shared_ptr<IpcStubContext> ipcStubContext_;
     IpcObjectStub objectStub_;
     IClientProxy *proxy_ = nullptr;
     std::shared_ptr<Surface> surface_;

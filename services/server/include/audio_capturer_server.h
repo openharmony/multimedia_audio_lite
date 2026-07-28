@@ -95,7 +95,7 @@ private:
     void CancelBuffer(SurfaceBuffer *buffer);
     void FreeCacheBuffer(void);
     void SetAudioCapturerServerCallback(AudioCapturerImpl *capturer, IpcIo *req);
-    AudioCapturerInfo DeserializeCaptureInfo(const char *str);
+    bool DeserializeCaptureInfo(const char *str, AudioCapturerInfo &info);
     std::string SerializeCaptureInfo(const AudioCapturerInfo &info);
     bool ReadAudioBuffer(AudioCapturerServer *serverStore, SurfaceBuffer *surfaceBuf, void *buf, uint32_t size);
     void DispatchException(int32_t funcId, AudioCapturerImpl *capturer, IpcIo *req, IpcIo *reply);

@@ -345,24 +345,87 @@ std::string AudioCapturerServer::SerializeCaptureInfo(const AudioCapturerInfo &i
     return ss.str();
 }
 
-AudioCapturerInfo AudioCapturerServer::DeserializeCaptureInfo(const char *str)
+static bool IsValidAudioSourceType(int32_t value)
 {
-    AudioCapturerInfo info = {};
+    switch (value) {
+        case AUDIO_SOURCE_INVALID:
+        case AUDIO_SOURCE_DEFAULT:
+        case AUDIO_MIC:
+        case AUDIO_VOICE_UPLINK:
+        case AUDIO_VOICE_DOWNLINK:
+        case AUDIO_VOICE_CALL:
+        case AUDIO_CAMCORDER:
+        case AUDIO_VOICE_RECOGNITION:
+        case AUDIO_VOICE_COMMUNICATION:
+        case AUDIO_REMOTE_SUBMIX:
+        case AUDIO_UNPROCESSED:
+        case AUDIO_VOICE_PERFORMANCE:
+        case AUDIO_ECHO_REFERENCE:
+        case AUDIO_RADIO_TUNER:
+        case AUDIO_HOTWORD:
+        case AUDIO_REMOTE_SUBMIX_EXTEND:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool IsValidAudioCodecFormat(int32_t value)
+{
+    return value >= AUDIO_DEFAULT && value < FORMAT_BUTT;
+}
+
+static bool IsValidAudioStreamType(int32_t value)
+{
+    /* Upper bound is last AudioStreamType enumerator (TYPE_TTS + 1). */
+    return value >= TYPE_DEFAULT && value <= TYPE_TTS + 1;
+}
+
+static bool IsValidAudioBitWidth(int32_t value)
+{
+    return value == BIT_WIDTH_8 || value == BIT_WIDTH_16 ||
+        value == BIT_WIDTH_24 || value == BIT_WIDTH_32;
+}
+
+static bool IsValidAudioSystemDeviceType(int32_t value)
+{
+    return value >= AUDIO_DEVICE_MIC_LOCAL && value <= AUDIO_DEVICE_SPEAKER_VIRTUAL;
+}
+
+bool AudioCapturerServer::DeserializeCaptureInfo(const char *str, AudioCapturerInfo &info)
+{
+    if (str == nullptr) {
+        MEDIA_ERR_LOG("DeserializeCaptureInfo str is nullptr");
+        return false;
+    }
+    AudioCapturerInfo tmp = {};
     std::stringstream ss(str);
     int32_t inputSource = 0;
     int32_t audioFormat = 0;
     int32_t streamType = 0;
     int32_t bitWidth = 0;
     int32_t deviceType = 0;
-    ss >> inputSource >> audioFormat >> info.sampleRate
-        >> info.channelCount >> info.bitRate >> info.deviceId
+    ss >> inputSource >> audioFormat >> tmp.sampleRate
+        >> tmp.channelCount >> tmp.bitRate >> tmp.deviceId
         >> streamType >> bitWidth >> deviceType;
-    info.inputSource = static_cast<AudioSourceType>(inputSource);
-    info.audioFormat = static_cast<AudioCodecFormat>(audioFormat);
-    info.streamType = static_cast<AudioStreamType>(streamType);
-    info.bitWidth = static_cast<AudioBitWidth>(bitWidth);
-    info.deviceType = static_cast<AudioSystemDeviceType>(deviceType);
-    return info;
+    if (ss.fail()) {
+        MEDIA_ERR_LOG("DeserializeCaptureInfo parse failed");
+        return false;
+    }
+    if (!IsValidAudioSourceType(inputSource) || !IsValidAudioCodecFormat(audioFormat) ||
+        !IsValidAudioStreamType(streamType) || !IsValidAudioBitWidth(bitWidth) ||
+        !IsValidAudioSystemDeviceType(deviceType)) {
+        MEDIA_ERR_LOG("DeserializeCaptureInfo invalid enum: source=%d format=%d stream=%d "
+            "bitWidth=%d deviceType=%d", inputSource, audioFormat, streamType, bitWidth, deviceType);
+        return false;
+    }
+    tmp.inputSource = static_cast<AudioSourceType>(inputSource);
+    tmp.audioFormat = static_cast<AudioCodecFormat>(audioFormat);
+    tmp.streamType = static_cast<AudioStreamType>(streamType);
+    tmp.bitWidth = static_cast<AudioBitWidth>(bitWidth);
+    tmp.deviceType = static_cast<AudioSystemDeviceType>(deviceType);
+    info = tmp;
+    return true;
 }
 
 void AudioCapturerServer::SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo *reply)
@@ -377,7 +440,11 @@ void AudioCapturerServer::SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo
         WriteInt32(reply, -1);
         return;
     }
-    info = DeserializeCaptureInfo(static_cast<const char *>(bufferAdd));
+    if (!DeserializeCaptureInfo(static_cast<const char *>(bufferAdd), info)) {
+        MEDIA_ERR_LOG("DeserializeCaptureInfo failed, size = %u", size);
+        WriteInt32(reply, ERR_INVALID_PARAM);
+        return;
+    }
     MEDIA_INFO_LOG("info.deviceId = %s, size = %d\n", info.deviceId.c_str(), size);
     int32_t ret = capturer->SetCapturerInfo(info);
     WriteInt32(reply, ret);
