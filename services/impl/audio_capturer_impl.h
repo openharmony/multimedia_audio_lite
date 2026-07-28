@@ -31,8 +31,10 @@ enum AudioChannel {
 
 class AudioSource;
 class AudioEncoder;
+#ifdef MEDIA_INTERFACE_V1_0
 class AudioSourceLocal;
 class AudioSourceVirtual;
+#endif
 class AudioCapturerImpl {
 public:
     AudioCapturerImpl();
@@ -51,10 +53,17 @@ public:
     void SetDeviceChangeCallback(std::shared_ptr<AudioManagerDeviceChangeCallback> callback);
 private:
     bool StopInternal();
+    int32_t InitAudioEncoderIfNeeded(const AudioCapturerInfo &info, AudioSource *audioSource);
+    int32_t ReadPcmFrame(AudioSource *audioSource, uint8_t *buffer, size_t userSize, bool isBlockingRead);
+    int32_t ReadEncodedStream(uint8_t *buffer, size_t userSize, bool isBlockingRead);
+#ifdef MEDIA_INTERFACE_V1_0
     void InitAudioSourceByDeviceType(AudioSystemDeviceType deviceType, std::string deviceId);
-    std::shared_ptr<AudioSource> GetAudioSource();
+    AudioSource *GetAudioSource();
     std::shared_ptr<AudioSourceLocal> audioSourceLocal_;
     std::shared_ptr<AudioSourceVirtual> audioSourceVirtual_;
+#else
+    std::unique_ptr<AudioSource> audioSource_;
+#endif
     std::unique_ptr<AudioEncoder> audioEncoder_;
     State status_ = INITIALIZED;
     OHOS::Audio::AudioCapturerInfo info_;

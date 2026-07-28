@@ -22,7 +22,11 @@
 #include <time.h>
 #include <vector>
 
+#ifdef MEDIA_INTERFACE_V1_0
 #include "audio_types.h"
+#else
+#include "audio_manager.h"
+#endif
 #include "format.h"
 #include "media_errors.h"
 #include "media_info.h"
@@ -54,7 +58,11 @@ struct AudioFrame {
 class AudioSource {
 public:
     AudioSource();
+#ifdef MEDIA_INTERFACE_V1_0
     virtual ~AudioSource();
+#else
+    ~AudioSource();
+#endif
 
     /**
      * Enumerates currently supported devices by audio source type.
@@ -63,7 +71,11 @@ public:
      * @param devices holds an array of satisfied audio device description, including name and identity.
      * @return Returns SUCCESS if success, other values otherwise.
      */
+#ifdef MEDIA_INTERFACE_V1_0
     virtual int32_t EnumDeviceBySourceType(AudioSourceType inputSource, std::vector<AudioDeviceDesc> &devices) = 0;
+#else
+    int32_t EnumDeviceBySourceType(AudioSourceType inputSource, std::vector<AudioDeviceDesc> &devices);
+#endif
 
      /**
      * Obtains the minimum frame count (in BytesPerSample) required in the specified conditions.
@@ -82,7 +94,11 @@ public:
      *
      * @return Returns the frame count (in BytesPerSample); returns {@code -1} if an exception occurs.
      */
+#ifdef MEDIA_INTERFACE_V1_0
     virtual uint64_t GetFrameCount() = 0;
+#else
+    uint64_t GetFrameCount();
+#endif
 
     /**
      * Initializes the audio source according to a specific configuration.
@@ -90,7 +106,11 @@ public:
      * @param config a configuration of audio source.
      * @return Returns SUCCESS if success, other values otherwise.
      */
+#ifdef MEDIA_INTERFACE_V1_0
     virtual int32_t Initialize(const AudioSourceConfig &config) = 0;
+#else
+    int32_t Initialize(const AudioSourceConfig &config);
+#endif
 
     /**
      * Sets input device's identity when switching device.
@@ -98,7 +118,11 @@ public:
      * @param deviceId identity to set.
      * @return Returns SUCCESS if set successfully, other values otherwise.
     */
+#ifdef MEDIA_INTERFACE_V1_0
     virtual int32_t SetInputDevice(uint32_t deviceId) = 0;
+#else
+    int32_t SetInputDevice(uint32_t deviceId);
+#endif
 
     /**
      * Gets current device's identity.
@@ -106,14 +130,22 @@ public:
      * @param deviceId holds the identity of current device, if success.
      * @return Returns SUCCESS if success, other values otherwise.
      */
+#ifdef MEDIA_INTERFACE_V1_0
     virtual int32_t GetCurrentDeviceId(uint32_t &deviceId) = 0;
+#else
+    int32_t GetCurrentDeviceId(uint32_t &deviceId);
+#endif
 
     /**
      * Starts audio source.
      *
      * @return Returns SUCCESS if success, other values otherwise.
     */
+#ifdef MEDIA_INTERFACE_V1_0
     virtual int32_t Start() = 0;
+#else
+    int32_t Start();
+#endif
 
     /**
      *
@@ -123,19 +155,43 @@ public:
      * @param isBlockingRead reading mode.
      * @return Returns size of data actually read.
     */
+#ifdef MEDIA_INTERFACE_V1_0
     virtual int32_t ReadFrame(AudioFrame &frame, bool isBlockingRead) = 0;
+#else
+    int32_t ReadFrame(AudioFrame &frame, bool isBlockingRead);
+#endif
 
     /**
      * Stops audio source.
      *
      * @return Returns SUCCESS if success, other values otherwise.
     */
+#ifdef MEDIA_INTERFACE_V1_0
     virtual int32_t Stop() = 0;
+#else
+    int32_t Stop();
+#endif
 
     /**
     * release.
     */
+#ifdef MEDIA_INTERFACE_V1_0
     virtual int32_t Release() = 0;
+#else
+    int32_t Release();
+#endif
+
+#ifndef MEDIA_INTERFACE_V1_0
+private:
+    int32_t InitCheck();
+
+private:
+    bool initialized_;
+    bool started_;
+    AudioAdapter *audioAdapter_;
+    AudioCapture *audioCapture_;
+    AudioPort capturePort_ = {};
+#endif
 };
 }  // namespace Audio
 }  // namespace OHOS

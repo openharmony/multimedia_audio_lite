@@ -49,13 +49,16 @@ shared_library("audio_capturer_impl") {
   sources = [
     "impl/audio_capturer_impl.cpp",
     "impl/audio_encoder/audio_encoder.cpp",
-    "impl/audio_source/src/local/audio_source_local.cpp",
-    "impl/audio_source/src/audio_source.cpp",
   ]
+  # media_interface_upgrade pairs with MEDIA_INTERFACE_V1_0 (board_macro_defines).
   if (defined(media_interface_upgrade)) {
     sources += [
+      "impl/audio_source/src/local/audio_source_local.cpp",
+      "impl/audio_source/src/audio_source.cpp",
       "impl/audio_source/src/virtual/audio_source_virtural.cpp",
     ]
+  } else {
+    sources += [ "impl/audio_source/audio_source.cpp" ]
   }
   cflags = [ "-fPIC" ]
   cflags += [ "-Werror" ]
@@ -63,8 +66,6 @@ shared_library("audio_capturer_impl") {
   include_dirs = [
     "//foundation/multimedia/audio_lite/services/impl/audio_encoder/include",
     "//foundation/multimedia/audio_lite/services/impl/audio_source/include",
-    "//foundation/multimedia/audio_lite/services/impl/audio_source/include/local",
-    "//foundation/multimedia/audio_lite/services/impl/audio_source/include/virtual",
     "//foundation/multimedia/audio_lite/frameworks/binder",
     "//foundation/multimedia/audio_lite/interfaces/kits",
     "//drivers/peripheral/audio/interfaces/include",
@@ -75,6 +76,8 @@ shared_library("audio_capturer_impl") {
   ]
   if (defined(media_interface_upgrade)) {
     include_dirs += [
+      "//foundation/multimedia/audio_lite/services/impl/audio_source/include/local",
+      "//foundation/multimedia/audio_lite/services/impl/audio_source/include/virtual",
       "${ohos_board_adapter_dir}/media/audio/source/distributed_audio/hdf_interfaces/distributed_audio/audio/v1_0",
       "${ohos_board_adapter_dir}/media/audio/source/distributed_audio/hdf_interfaces/distributed_audio/audioext/v1_0",
       "${ohos_board_adapter_dir}/media/audio/source/distributed_audio/hdf_service/distributed_audio/hdi_service/audio/v1_0/include",
