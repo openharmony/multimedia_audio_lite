@@ -49,10 +49,13 @@ struct AudioStream {
     int64_t timeStamp = 0;
 };
 
+#ifndef MEDIA_INTERFACE_V1_0
+/* CodecBuffer ends with flexible array buffer[0]; embed CodecBufferInfo for storage. */
 typedef struct {
     CodecBuffer info;
     CodecBufferInfo buffer;
 } AudioBufferInfo;
+#endif
 
 class AudioEncoder {
 public:
@@ -123,6 +126,9 @@ public:
 private:
     int32_t InitAudioEncoderAttr(const AudioEncodeConfig &config);
     void setEncAttrValue(const AudioEncodeConfig &config);
+    void SetEncAttrBasic(const AudioEncodeConfig &config, uint32_t &paramIndex);
+    void SetEncAttrAudio(const AudioEncodeConfig &config, uint32_t &paramIndex);
+    int32_t CopyDequeueOutput(AudioStream &stream, uint32_t timeoutMs);
 
 private:
     bool initialized_;

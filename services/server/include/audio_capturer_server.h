@@ -18,6 +18,8 @@
 #include <mutex>
 #include <pthread.h>
 #include <thread>
+#include <vector>
+#include <atomic>
 #include "audio_capturer_impl.h"
 #include "ipc_skeleton.h"
 #include "serializer.h"
@@ -40,11 +42,26 @@ enum AudioCapturerFuncId {
     AUD_CAP_FUNC_RELEASE,
     AUD_CAP_FUNC_GET_MIN_FRAME_COUNT,
     AUD_CAP_FUNC_SET_SURFACE,
+    AUD_CAP_FUNC_SET_DEVICE_CHANGE_CALLBACK,
     AUD_CAP_FUNC_BUTT,
 };
 
 static constexpr int32_t DEFAULT_IPC_SIZE = 100;
 #define AUDIO_CAPTURER_SERVICE_NAME "AudioCapServer"
+
+class AudioCapturerServerCallback : public AudioManagerDeviceChangeCallback {
+public:
+    AudioCapturerServerCallback() {}
+    ~AudioCapturerServerCallback() override {}
+    void OnDeviceChange(const AudioDeviceInfo &deviceInfo) override;
+    void OnReadDataFailed(void) override;
+    void SetSvcIdentity(SvcIdentity sid);
+    SvcIdentity GetSvcIdentity();
+    void SetCanCallback(bool isCallback);
+private:
+    SvcIdentity sid_;
+    std::atomic<bool> isCallback_ {false};
+};
 
 /* Since IPC is serialized, there is no concurrency problem */
 class AudioCapturerServer {
@@ -59,7 +76,10 @@ public:
     void DropServer(pid_t pid, IpcIo *reply);
     void Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo *reply);
     static void *ReadAudioDataProcess(void *serverStr);
-
+    void OnAllDeviceChange();
+    void addDeviceInfo(AudioDeviceInfo deviceInfo);
+    int32_t SendDeviceInfo(const AudioDeviceInfo &deviceInfo);
+    void SendReadDataFailInfo(void);
 private:
     void GetMinFrameCount(IpcIo *req, IpcIo *reply);
     int32_t SetSurfaceProcess(Surface *surface);
@@ -74,15 +94,22 @@ private:
     SurfaceBuffer *GetCacheBuffer(void);
     void CancelBuffer(SurfaceBuffer *buffer);
     void FreeCacheBuffer(void);
-
+    void SetAudioCapturerServerCallback(AudioCapturerImpl *capturer, IpcIo *req);
+    bool DeserializeCaptureInfo(const char *str, AudioCapturerInfo &info);
+    std::string SerializeCaptureInfo(const AudioCapturerInfo &info);
+    bool ReadAudioBuffer(AudioCapturerServer *serverStore, SurfaceBuffer *surfaceBuf, void *buf, uint32_t size);
+    void DispatchException(int32_t funcId, AudioCapturerImpl *capturer, IpcIo *req, IpcIo *reply);
     pid_t clientPid_ = -1;
     AudioCapturerImpl *capturer_ = nullptr;
     Surface *surface_ = nullptr;
     // std::thread dataThreadId_;
     pthread_t dataThreadId_ = 0;
     std::mutex lock_;
+    std::mutex callbackLock_;
     bool threadExit_ = false;
     SurfaceBuffer *bufCache_ = nullptr;
+    std::shared_ptr<AudioCapturerServerCallback> callback_ = nullptr;
+    std::vector<AudioDeviceInfo> deviceInfoList_;
 };
 
 void AudioCapturerServiceReg();

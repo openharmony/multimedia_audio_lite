@@ -18,8 +18,8 @@
 
 #include <mutex>
 #include <sys/time.h>
-
 #include "audio_capturer.h"
+#include "media_info.h"
 
 namespace OHOS {
 namespace Audio {
@@ -31,14 +31,18 @@ enum AudioChannel {
 
 class AudioSource;
 class AudioEncoder;
+#ifdef MEDIA_INTERFACE_V1_0
+class AudioSourceLocal;
+class AudioSourceVirtual;
+#endif
 class AudioCapturerImpl {
 public:
     AudioCapturerImpl();
     virtual ~AudioCapturerImpl();
     static bool GetMinFrameCount(int32_t sampleRate, int32_t channelCount, AudioCodecFormat audioFormat,
                                  size_t &frameCount);
-    int32_t SetCapturerInfo(const AudioCapturerInfo info);
-    int32_t GetCapturerInfo(AudioCapturerInfo &info);
+    int32_t SetCapturerInfo(const OHOS::Audio::AudioCapturerInfo &info);
+    int32_t GetCapturerInfo(OHOS::Audio::AudioCapturerInfo &info);
     bool Record();
     bool Stop();
     bool Release();
@@ -46,14 +50,23 @@ public:
     uint64_t GetFrameCount();
     State GetStatus();
     bool GetTimestamp(Timestamp &timestamp, Timestamp::Timebase base);
-
+    void SetDeviceChangeCallback(std::shared_ptr<AudioManagerDeviceChangeCallback> callback);
 private:
     bool StopInternal();
-
+    int32_t InitAudioEncoderIfNeeded(const AudioCapturerInfo &info, AudioSource *audioSource);
+    int32_t ReadPcmFrame(AudioSource *audioSource, uint8_t *buffer, size_t userSize, bool isBlockingRead);
+    int32_t ReadEncodedStream(uint8_t *buffer, size_t userSize, bool isBlockingRead);
+#ifdef MEDIA_INTERFACE_V1_0
+    void InitAudioSourceByDeviceType(AudioSystemDeviceType deviceType, std::string deviceId);
+    AudioSource *GetAudioSource();
+    std::shared_ptr<AudioSourceLocal> audioSourceLocal_;
+    std::shared_ptr<AudioSourceVirtual> audioSourceVirtual_;
+#else
     std::unique_ptr<AudioSource> audioSource_;
+#endif
     std::unique_ptr<AudioEncoder> audioEncoder_;
     State status_ = INITIALIZED;
-    AudioCapturerInfo info_;
+    OHOS::Audio::AudioCapturerInfo info_;
     Timestamp timestamp_;
     int32_t inputDeviceId_ = 0;
     std::mutex mutex_;

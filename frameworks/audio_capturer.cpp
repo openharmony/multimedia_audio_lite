@@ -60,7 +60,7 @@ bool AudioCapturer::GetAudioTime(Timestamp &timestamp, Timestamp::Timebase base)
     return impl_->GetAudioTime(timestamp, base);
 }
 
-int32_t AudioCapturer::SetCapturerInfo(const AudioCapturerInfo info)
+int32_t AudioCapturer::SetCapturerInfo(const AudioCapturerInfo &info)
 {
     CHK_NULL_RETURN(impl_, -1);
     return impl_->SetCapturerInfo(info);
@@ -94,6 +94,16 @@ int32_t AudioCapturer::Read(uint8_t *buffer, size_t userSize, bool isBlockingRea
 {
     CHK_NULL_RETURN(impl_, -1);
     return impl_->Read(buffer, userSize, isBlockingRead);
+}
+
+
+void AudioCapturer::SetDeviceChangeCallback(const std::shared_ptr<AudioManagerDeviceChangeCallback> &callback)
+{
+    if (impl_ == nullptr) {
+        MEDIA_ERR_LOG("impl_ null");
+        return;
+    }
+    impl_->SetDeviceChangeCallback(callback);
 }
 
 }  // namespace Audio

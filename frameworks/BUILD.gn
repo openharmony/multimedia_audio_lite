@@ -23,6 +23,8 @@ shared_library("audio_capturer_lite") {
       "//foundation/multimedia/audio_lite/frameworks/passthrough",
       "//foundation/multimedia/audio_lite/services/impl",
       "//foundation/systemabilitymgr/samgr_lite/interfaces/kits/samgr",
+      "//foundation/multimedia/audio_lite/services/impl/audio_source/include/local",
+      "//foundation/multimedia/audio_lite/services/impl/audio_source/include/virtual"
     ]
     deps = [
       "//foundation/multimedia/audio_lite/services:audio_capturer_impl",
@@ -53,6 +55,12 @@ shared_library("audio_capturer_lite") {
     "//foundation/multimedia/media_utils_lite:media_common",
     "//third_party/bounds_checking_function:libsec_shared",
   ]
+  if (defined(media_interface_upgrade)) {
+    public_deps += [
+      "//third_party/alsa-lib:asound_shared",
+      "//third_party/alsa-utils:alsa_utils_lite"
+    ]
+  }
 }
 
 config("audio_capturer_public_config") {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 HiSilicon (Shanghai) Technologies Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,7 +13,8 @@
  * limitations under the License.
  */
 
-#include "audio_source.h"
+#include "audio_source_local.h"
+#include <algorithm>
 #include "media_log.h"
 #include "securec.h"
 
@@ -21,8 +22,7 @@ namespace OHOS {
 namespace Audio {
 using namespace OHOS::Media;
 static AudioManager *g_audioManager = nullptr;
-
-AudioSource::AudioSource()
+AudioSourceLocal::AudioSourceLocal()
     : initialized_(false),
       started_(false),
       audioAdapter_(nullptr),
@@ -32,6 +32,10 @@ AudioSource::AudioSource()
         g_audioManager = GetAudioManagerFuncs();
         MEDIA_DEBUG_LOG("g_audioManager");
     }
+    if (g_audioManager == nullptr) {
+        MEDIA_ERR_LOG("AudioSourceLocal g_audioManager is nullptr");
+        return;
+    }
     int size = 0;
     struct AudioAdapterDescriptor *descs = nullptr;
     g_audioManager->GetAllAdapters(g_audioManager, &descs, &size);
@@ -39,29 +43,38 @@ AudioSource::AudioSource()
 
     for (int index = 0; index < size; index++) {
         struct AudioAdapterDescriptor *desc = &descs[index];
-        for (int port = 0; (desc != nullptr && port < static_cast<int>(desc->portNum)); port++) {
-            if ((desc->ports[port].dir != PORT_IN) ||
-                (g_audioManager->LoadAdapter(g_audioManager, desc, &audioAdapter_))) {
-                continue;
-            }
-            (void)audioAdapter_->InitAllPorts(audioAdapter_);
-            if (memcpy_s(&capturePort_, sizeof(struct AudioPort),
-                &desc->ports[port], sizeof(struct AudioPort))) {
-                MEDIA_WARNING_LOG("memcpy_s capturePort_ failed");
-            }
-            break;
+        if (strcmp(desc->adapterName, "Primary") == 0) {  // USB
+            IsPrimaryAdapter(desc);
         }
     }
     MEDIA_DEBUG_LOG("LoadAdapter audioAdapter_");
 }
 
-AudioSource::~AudioSource()
+void AudioSourceLocal::IsPrimaryAdapter(struct AudioAdapterDescriptor *desc)
+{
+    if (desc == nullptr) {
+        return;
+    }
+    for (int port = 0; port < static_cast<int>(desc->portNum); port++) {
+        if (desc->ports[port].dir == PORT_IN \
+             && !(g_audioManager->LoadAdapter(g_audioManager, desc, &audioAdapter_))) {
+            (void)audioAdapter_->InitAllPorts(audioAdapter_);
+            if (memcpy_s(&capturePort_, sizeof(struct AudioPort),
+                &desc->ports[port], sizeof(struct AudioPort))) {
+                MEDIA_WARNING_LOG("memcpy_s capturePort_ failed");
+            }
+            return;
+        }
+    }
+}
+
+AudioSourceLocal::~AudioSourceLocal()
 {
     MEDIA_DEBUG_LOG("in");
     if (initialized_) {
         Release();
     }
-    
+
     if (audioAdapter_ != nullptr) {
         MEDIA_INFO_LOG("UnloadModule audioAdapter_");
         if (g_audioManager == nullptr) {
@@ -74,7 +87,7 @@ AudioSource::~AudioSource()
     }
 }
 
-int32_t AudioSource::InitCheck()
+int32_t AudioSourceLocal::InitCheck()
 {
     if (!initialized_) {
         MEDIA_ERR_LOG("not initialized");
@@ -83,20 +96,7 @@ int32_t AudioSource::InitCheck()
     return SUCCESS;
 }
 
-bool AudioSource::GetMinFrameCount(int32_t sampleRate, int32_t channelCount,
-                                   AudioCodecFormat audioFormat, size_t &frameCount)
-{
-    if (sampleRate <= 0 || channelCount <= 0 || audioFormat < AUDIO_DEFAULT ||
-        audioFormat >= FORMAT_BUTT) {
-        MEDIA_ERR_LOG("invalid params sampleRate:%d channelCount:%d audioFormat:%d", sampleRate,
-                      channelCount, audioFormat);
-        return false;
-    }
-    frameCount = 0;
-    return true;
-}
-
-uint64_t AudioSource::GetFrameCount()
+uint64_t AudioSourceLocal::GetFrameCount()
 {
     int32_t ret;
     if ((ret = InitCheck()) != SUCCESS) {
@@ -115,7 +115,7 @@ uint64_t AudioSource::GetFrameCount()
     return frameCount;
 }
 
-int32_t AudioSource::EnumDeviceBySourceType(AudioSourceType inputSource, std::vector<AudioDeviceDesc> &devices)
+int32_t AudioSourceLocal::EnumDeviceBySourceType(AudioSourceType inputSource, std::vector<AudioDeviceDesc> &devices)
 {
     if (inputSource != AUDIO_MIC && inputSource != AUDIO_SOURCE_DEFAULT) {
         MEDIA_ERR_LOG("AudioSource only support AUDIO_MIC");
@@ -179,17 +179,18 @@ static bool ConvertCodecFormatToAudioFormat(AudioCodecFormat codecFormat, AudioF
     return true;
 }
 
-int32_t AudioSource::Initialize(const AudioSourceConfig &config)
+int32_t AudioSourceLocal::Initialize(const AudioSourceConfig &config)
 {
     if (audioAdapter_ == nullptr) {
         MEDIA_ERR_LOG("audioAdapter_ is NULL");
         return ERR_ILLEGAL_STATE;
     }
     MEDIA_INFO_LOG("deviceId:0x%x config.sampleRate:%d", config.deviceId, config.sampleRate);
-    struct AudioDeviceDescriptor desc;
-    desc.pins = PIN_IN_MIC;
+    AudioDeviceDescriptor desc;
+    desc.pins = PIN_IN_MIC; // in mic:PIN_IN_MIC usb mic:PIN_IN_USB_EXT
     desc.desc = NULL;
-    struct AudioSampleAttributes attrs;
+    AudioSampleAttributes attrs;
+    deviceId_ = config.deviceId;
     if (config.streamUsage == TYPE_MEDIA || config.streamUsage == TYPE_DEFAULT) {
         attrs.type = AUDIO_IN_MEDIA;
     } else if (config.streamUsage == TYPE_VOICE_COMMUNICATION) {
@@ -203,6 +204,7 @@ int32_t AudioSource::Initialize(const AudioSourceConfig &config)
         MEDIA_ERR_LOG("not support audioFormat:%d", config.audioFormat);
         return ERR_INVALID_PARAM;
     }
+    // usb mic sampleRate 48000
     attrs.sampleRate = config.sampleRate;
     attrs.channelCount = config.channelCount;
     attrs.interleaved = config.interleaved;
@@ -215,13 +217,13 @@ int32_t AudioSource::Initialize(const AudioSourceConfig &config)
     return SUCCESS;
 }
 
-int32_t AudioSource::SetInputDevice(uint32_t deviceId)
+int32_t AudioSourceLocal::SetInputDevice(uint32_t deviceId)
 {
     (void)deviceId;
     return SUCCESS;
 }
 
-int32_t AudioSource::GetCurrentDeviceId(uint32_t &deviceId)
+int32_t AudioSourceLocal::GetCurrentDeviceId(uint32_t &deviceId)
 {
     if (audioCapture_ == nullptr) {
         MEDIA_ERR_LOG("audioCapture_ is NULL");
@@ -236,7 +238,7 @@ int32_t AudioSource::GetCurrentDeviceId(uint32_t &deviceId)
     return SUCCESS;
 }
 
-int32_t AudioSource::Start()
+int32_t AudioSourceLocal::Start()
 {
     int32_t ret;
     if ((ret = InitCheck()) != SUCCESS) {
@@ -256,7 +258,7 @@ int32_t AudioSource::Start()
     return SUCCESS;
 }
 
-int32_t AudioSource::ReadFrame(AudioFrame &frame, bool isBlockingRead)
+int32_t AudioSourceLocal::ReadFrame(AudioFrame &frame, bool isBlockingRead)
 {
     if (!started_) {
         MEDIA_ERR_LOG("AudioSource not Start");
@@ -280,9 +282,9 @@ int32_t AudioSource::ReadFrame(AudioFrame &frame, bool isBlockingRead)
     return readlen;
 }
 
-int32_t AudioSource::Stop()
+int32_t AudioSourceLocal::Stop()
 {
-    MEDIA_INFO_LOG("AudioSource::Stop");
+    MEDIA_INFO_LOG("AudioSourceLocal::Stop");
     if (!started_) {
         MEDIA_ERR_LOG("AudioSource not Start");
         return ERR_ILLEGAL_STATE;
@@ -301,13 +303,17 @@ int32_t AudioSource::Stop()
     return SUCCESS;
 }
 
-int32_t AudioSource::Release()
+int32_t AudioSourceLocal::Release()
 {
     int32_t ret;
     if ((ret = InitCheck()) != SUCCESS) {
         return ret;
     }
     if (audioCapture_) {
+        if (audioAdapter_ == nullptr) {
+            MEDIA_ERR_LOG("audioAdapter_ is NULL");
+            return ERR_ILLEGAL_STATE;
+        }
         audioAdapter_->DestroyCapture(audioAdapter_, audioCapture_);
         audioCapture_ = nullptr;
     }

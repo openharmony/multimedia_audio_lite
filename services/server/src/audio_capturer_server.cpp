@@ -14,6 +14,8 @@
  */
 
 #include "audio_capturer_server.h"
+#include <cstring>
+#include <sstream>
 #include "audio_capturer_impl.h"
 #include "media_errors.h"
 #include "media_log.h"
@@ -25,6 +27,10 @@ using namespace std;
 using namespace OHOS::Media;
 namespace OHOS {
 namespace Audio {
+
+constexpr int32_t WAIT_SURFACE_BUFFER_US = 10000;
+constexpr int32_t WAIT_READ_SORFTBUS_DATA_US = 10000;
+
 AudioCapturerServer *AudioCapturerServer::GetInstance()
 {
     static AudioCapturerServer mng;
@@ -38,6 +44,13 @@ AudioCapturerImpl *AudioCapturerServer::GetAudioCapturer(pid_t pid)
 
 int32_t AudioCapturerServer::AudioCapturerServerInit()
 {
+    if (capturer_ == nullptr && clientPid_ == -1) {
+        capturer_ = new AudioCapturerImpl;
+    }
+    callback_ = std::make_shared<AudioCapturerServerCallback>();
+    if (capturer_ != nullptr) {
+        capturer_->SetDeviceChangeCallback(callback_);
+    }
     return 0;
 }
 
@@ -45,7 +58,13 @@ void AudioCapturerServer::AcceptServer(pid_t pid, IpcIo *reply)
 {
     MEDIA_INFO_LOG("in");
     if (clientPid_ == -1) {
-        capturer_ = new AudioCapturerImpl;
+        if (capturer_ == nullptr) {
+            capturer_ = new AudioCapturerImpl;
+            callback_ = std::make_shared<AudioCapturerServerCallback>();
+            if (capturer_ != nullptr) {
+                capturer_->SetDeviceChangeCallback(callback_);
+            }
+        }
         clientPid_ = pid;
         WriteInt32(reply, MEDIA_OK);
     } else {
@@ -66,6 +85,7 @@ void AudioCapturerServer::DropServer(pid_t pid, IpcIo *reply)
         delete capturer_;
         capturer_ = nullptr;
         clientPid_ = -1;
+        callback_->SetCanCallback(false);
         bufCache_ = nullptr;
     }
     WriteInt32(reply, MEDIA_OK);
@@ -95,6 +115,155 @@ void AudioCapturerServer::FreeCacheBuffer(void)
     bufCache_ = nullptr;
 }
 
+void AudioCapturerServer::SetAudioCapturerServerCallback(AudioCapturerImpl *capturer, IpcIo *req)
+{
+    SvcIdentity sid;
+    if (ReadRemoteObject(req, &sid)) {
+        if (callback_ != nullptr) {
+            callback_->SetSvcIdentity(sid);
+            callback_->SetCanCallback(true);
+            OnAllDeviceChange();
+        }
+    }
+}
+
+void AudioCapturerServerCallback::SetSvcIdentity(SvcIdentity sid)
+{
+    sid_ = sid;
+}
+
+void AudioCapturerServerCallback::SetCanCallback(bool isCallback)
+{
+    isCallback_.store(isCallback);
+}
+
+SvcIdentity AudioCapturerServerCallback::GetSvcIdentity()
+{
+    return sid_;
+}
+
+void AudioCapturerServerCallback::OnDeviceChange(const AudioDeviceInfo &deviceInfo)
+{
+    MEDIA_INFO_LOG("revice Device changed,device dhid = %d", deviceInfo.dhId);
+    AudioCapturerServer::GetInstance()->addDeviceInfo(deviceInfo);
+    if (isCallback_.load()) {
+        AudioCapturerServer::GetInstance()->SendDeviceInfo(deviceInfo);
+    }
+}
+
+void AudioCapturerServerCallback::OnReadDataFailed(void)
+{
+    MEDIA_INFO_LOG("revice Read data failed event");
+    if (isCallback_.load()) {
+        AudioCapturerServer::GetInstance()->SendReadDataFailInfo();
+    }
+}
+
+int32_t AudioCapturerServer::SendDeviceInfo(const AudioDeviceInfo &deviceInfo)
+{
+    IpcIo io;
+    uint8_t tmpData[DEFAULT_IPC_SIZE];
+    int32_t size = 0;
+    IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, size);
+    WriteUint32(&io, (int32_t)deviceInfo.dhId);
+    uint32_t nameLen = strnlen(deviceInfo.deviceName, MAX_DEVICE_NAME_LEN);
+    WriteUint32(&io, nameLen);
+    WriteBuffer(&io, deviceInfo.deviceName, nameLen);
+    WriteInt32(&io, (int32_t)deviceInfo.deviceType);
+    WriteInt32(&io, (int32_t)deviceInfo.connectStatus);
+    MessageOption option;
+    MessageOptionInit(&option);
+    option.flags = TF_OP_ASYNC;
+    int32_t ret = SendRequest(callback_->GetSvcIdentity(), ON_DEVICE_CHANGED, &io, nullptr, option, nullptr);
+    if (ret != MEDIA_OK) {
+        MEDIA_ERR_LOG("AudioCapturerServerCallback::OnDeviceChange failed,deviceInfo.dhid = %d\n", deviceInfo.dhId);
+        return -1;
+    }
+    return 0;
+}
+
+void AudioCapturerServer::SendReadDataFailInfo(void)
+{
+    if (callback_ == nullptr) {
+        MEDIA_ERR_LOG("AudioCapturerServerCallback::ON_READ_DATA_FAILED failed");
+        return;
+    }
+    IpcIo io;
+    uint8_t tmpData[DEFAULT_IPC_SIZE];
+    int32_t size = 0;
+    IpcIoInit(&io, tmpData, DEFAULT_IPC_SIZE, size);
+    MessageOption option;
+    MessageOptionInit(&option);
+    option.flags = TF_OP_ASYNC;
+    int32_t ret = SendRequest(callback_->GetSvcIdentity(), ON_READ_DATA_FAILED, &io, nullptr, option, nullptr);
+    if (ret != MEDIA_OK) {
+        MEDIA_ERR_LOG("AudioCapturerServerCallback::ON_READ_DATA_FAILED failed");
+    }
+}
+
+void AudioCapturerServer::addDeviceInfo(AudioDeviceInfo deviceInfo)
+{
+    std::lock_guard<std::mutex> lck(callbackLock_);
+    std::vector<AudioDeviceInfo>::iterator it = deviceInfoList_.begin();
+    bool isFound = false;
+    for (; it != deviceInfoList_.end(); it++) {
+        AudioDeviceInfo newDeviceInfo = (*it);
+        if (deviceInfo.dhId == newDeviceInfo.dhId) {
+            newDeviceInfo.connectStatus = deviceInfo.connectStatus;
+            isFound = true;
+        }
+    }
+    if (!isFound) {
+        deviceInfoList_.push_back(deviceInfo);
+    }
+}
+
+void AudioCapturerServer::OnAllDeviceChange()
+{
+    std::lock_guard<std::mutex> lck(callbackLock_);
+    std::vector<AudioDeviceInfo>::iterator it = deviceInfoList_.begin();
+    for (; it != deviceInfoList_.end(); it++) {
+        AudioDeviceInfo newDeviceInfo = (*it);
+        int32_t ret = SendDeviceInfo(newDeviceInfo);
+        if (ret != 0) {
+            break;
+        }
+    }
+}
+
+bool AudioCapturerServer::ReadAudioBuffer(AudioCapturerServer *serverStore, \
+    SurfaceBuffer *surfaceBuf, void *buf, uint32_t size)
+{
+    if (serverStore == nullptr || serverStore->capturer_ == nullptr) {
+        MEDIA_ERR_LOG("No available serverStore in capturer.");
+        return false;
+    }
+    uint32_t offSet = sizeof(Timestamp);
+    int32_t readLen = serverStore->capturer_->Read((uint8_t *)buf + offSet, size - offSet, true);
+    if (readLen == ERR_INVALID_READ) {
+        usleep(WAIT_READ_SORFTBUS_DATA_US);
+        return false;
+    } else if (readLen == ERR_ILLEGAL_STATE ||
+        readLen == ERR_AUDIO_READ_DATA_TIME_OUT) {
+        serverStore->SendReadDataFailInfo();
+        return false;
+    }
+    Timestamp timestamp;
+    Timestamp::Timebase base = {};
+    bool ret =  serverStore->capturer_->GetTimestamp(timestamp, base);
+    if (!ret) {
+        MEDIA_ERR_LOG("No readtime get.");
+        return false;
+    }
+    errno_t retCopy = memcpy_s((uint8_t *)buf, sizeof(Timestamp), &timestamp, sizeof(Timestamp));
+    if (retCopy != EOK) {
+        MEDIA_ERR_LOG("retCopy = %x", retCopy);
+        return false;
+    }
+    surfaceBuf->SetSize(sizeof(Timestamp) + readLen);
+    return true;
+}
+
 void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
 {
     AudioCapturerServer *serverStore = (AudioCapturerServer *)serverStr;
@@ -108,7 +277,7 @@ void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
         /* request surface buffer */
         SurfaceBuffer *surfaceBuf = serverStore->GetCacheBuffer();
         if (surfaceBuf == nullptr) {
-            usleep(5000); // indicates 5000 microseconds
+            usleep(WAIT_SURFACE_BUFFER_US);
             continue;
         }
         uint32_t size = serverStore->surface_->GetSize();
@@ -117,27 +286,10 @@ void *AudioCapturerServer::ReadAudioDataProcess(void *serverStr)
             serverStore->CancelBuffer(surfaceBuf);
             continue;
         }
-        uint32_t offSet = sizeof(Timestamp);
-        /* Timestamp + audio data */
-        /* read frame data, and reserve timestamp space */
-        int32_t readLen = serverStore->capturer_->Read((uint8_t *)buf + offSet, size - offSet, true);
-        if (readLen == ERR_INVALID_READ) {
-            continue;
-        }
-
-        Timestamp timestamp;
-        Timestamp::Timebase base = {};
-        bool ret =  serverStore->capturer_->GetTimestamp(timestamp, base);
+        bool ret = serverStore->ReadAudioBuffer(serverStore, surfaceBuf, buf, size);
         if (!ret) {
-            MEDIA_ERR_LOG("No readtime get.");
             continue;
         }
-        errno_t retCopy = memcpy_s((uint8_t *)buf, sizeof(Timestamp), &timestamp, sizeof(Timestamp));
-        if (retCopy != EOK) {
-            MEDIA_ERR_LOG("retCopy = %x", retCopy);
-            continue;
-        }
-        surfaceBuf->SetSize(sizeof(Timestamp) + readLen);
 
         // flush buffer
         if (serverStore->surface_->FlushBuffer(surfaceBuf) != 0) {
@@ -178,6 +330,104 @@ void AudioCapturerServer::GetMinFrameCount(IpcIo *req, IpcIo *reply)
     WriteUint32(reply, frameCount);
 }
 
+std::string AudioCapturerServer::SerializeCaptureInfo(const AudioCapturerInfo &info)
+{
+    std::stringstream ss;
+    ss << static_cast<int32_t>(info.inputSource) << ' '
+        << static_cast<int32_t>(info.audioFormat) << ' '
+        << info.sampleRate << ' '
+        << info.channelCount << ' '
+        << info.bitRate << ' '
+        << info.deviceId << ' '
+        << static_cast<int32_t>(info.streamType) << ' '
+        << static_cast<int32_t>(info.bitWidth) << ' '
+        << static_cast<int32_t>(info.deviceType);
+    return ss.str();
+}
+
+static bool IsValidAudioSourceType(int32_t value)
+{
+    switch (value) {
+        case AUDIO_SOURCE_INVALID:
+        case AUDIO_SOURCE_DEFAULT:
+        case AUDIO_MIC:
+        case AUDIO_VOICE_UPLINK:
+        case AUDIO_VOICE_DOWNLINK:
+        case AUDIO_VOICE_CALL:
+        case AUDIO_CAMCORDER:
+        case AUDIO_VOICE_RECOGNITION:
+        case AUDIO_VOICE_COMMUNICATION:
+        case AUDIO_REMOTE_SUBMIX:
+        case AUDIO_UNPROCESSED:
+        case AUDIO_VOICE_PERFORMANCE:
+        case AUDIO_ECHO_REFERENCE:
+        case AUDIO_RADIO_TUNER:
+        case AUDIO_HOTWORD:
+        case AUDIO_REMOTE_SUBMIX_EXTEND:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool IsValidAudioCodecFormat(int32_t value)
+{
+    return value >= AUDIO_DEFAULT && value < FORMAT_BUTT;
+}
+
+static bool IsValidAudioStreamType(int32_t value)
+{
+    /* Upper bound is last AudioStreamType enumerator (TYPE_TTS + 1). */
+    return value >= TYPE_DEFAULT && value <= TYPE_TTS + 1;
+}
+
+static bool IsValidAudioBitWidth(int32_t value)
+{
+    return value == BIT_WIDTH_8 || value == BIT_WIDTH_16 ||
+        value == BIT_WIDTH_24 || value == BIT_WIDTH_32;
+}
+
+static bool IsValidAudioSystemDeviceType(int32_t value)
+{
+    return value >= AUDIO_DEVICE_MIC_LOCAL && value <= AUDIO_DEVICE_SPEAKER_VIRTUAL;
+}
+
+bool AudioCapturerServer::DeserializeCaptureInfo(const char *str, AudioCapturerInfo &info)
+{
+    if (str == nullptr) {
+        MEDIA_ERR_LOG("DeserializeCaptureInfo str is nullptr");
+        return false;
+    }
+    AudioCapturerInfo tmp = {};
+    std::stringstream ss(str);
+    int32_t inputSource = 0;
+    int32_t audioFormat = 0;
+    int32_t streamType = 0;
+    int32_t bitWidth = 0;
+    int32_t deviceType = 0;
+    ss >> inputSource >> audioFormat >> tmp.sampleRate
+        >> tmp.channelCount >> tmp.bitRate >> tmp.deviceId
+        >> streamType >> bitWidth >> deviceType;
+    if (ss.fail()) {
+        MEDIA_ERR_LOG("DeserializeCaptureInfo parse failed");
+        return false;
+    }
+    if (!IsValidAudioSourceType(inputSource) || !IsValidAudioCodecFormat(audioFormat) ||
+        !IsValidAudioStreamType(streamType) || !IsValidAudioBitWidth(bitWidth) ||
+        !IsValidAudioSystemDeviceType(deviceType)) {
+        MEDIA_ERR_LOG("DeserializeCaptureInfo invalid enum: source=%d format=%d stream=%d "
+            "bitWidth=%d deviceType=%d", inputSource, audioFormat, streamType, bitWidth, deviceType);
+        return false;
+    }
+    tmp.inputSource = static_cast<AudioSourceType>(inputSource);
+    tmp.audioFormat = static_cast<AudioCodecFormat>(audioFormat);
+    tmp.streamType = static_cast<AudioStreamType>(streamType);
+    tmp.bitWidth = static_cast<AudioBitWidth>(bitWidth);
+    tmp.deviceType = static_cast<AudioSystemDeviceType>(deviceType);
+    info = tmp;
+    return true;
+}
+
 void AudioCapturerServer::SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo *reply)
 {
     AudioCapturerInfo info;
@@ -190,11 +440,12 @@ void AudioCapturerServer::SetInfo(AudioCapturerImpl *capturer, IpcIo *req, IpcIo
         WriteInt32(reply, -1);
         return;
     }
-    errno_t retCopy = memcpy_s(&info, sizeof(AudioCapturerInfo), bufferAdd, size);
-    if (retCopy != EOK) {
-        MEDIA_ERR_LOG("retCopy = %x", retCopy);
+    if (!DeserializeCaptureInfo(static_cast<const char *>(bufferAdd), info)) {
+        MEDIA_ERR_LOG("DeserializeCaptureInfo failed, size = %u", size);
+        WriteInt32(reply, ERR_INVALID_PARAM);
         return;
     }
+    MEDIA_INFO_LOG("info.deviceId = %s, size = %d\n", info.deviceId.c_str(), size);
     int32_t ret = capturer->SetCapturerInfo(info);
     WriteInt32(reply, ret);
 }
@@ -209,8 +460,9 @@ void AudioCapturerServer::GetInfo(AudioCapturerImpl *capturer, IpcIo *reply)
     AudioCapturerInfo info;
     int32_t ret = capturer->GetCapturerInfo(info);
     WriteInt32(reply, ret);
-    WriteUint32(reply, sizeof(AudioCapturerInfo));
-    WriteBuffer(reply, &info, sizeof(AudioCapturerInfo));
+    std::string value = SerializeCaptureInfo(info);
+    WriteUint32(reply, value.size());
+    WriteBuffer(reply, value.c_str(), value.size());
 }
 
 void AudioCapturerServer::Start(AudioCapturerImpl *capturer, IpcIo *reply)
@@ -301,6 +553,36 @@ void AudioCapturerServer::SetSurface(IpcIo *req, IpcIo *reply)
     WriteInt32(reply, ret);
 }
 
+void AudioCapturerServer::DispatchException(int32_t funcId, AudioCapturerImpl *capturer, IpcIo *req, IpcIo *reply)
+{
+    if (capturer == nullptr) {
+        MEDIA_ERR_LOG("DispatchException failed, capturer value is nullptr");
+        return;
+    }
+    switch (funcId) {
+        case AUD_CAP_FUNC_START:
+            Start(capturer, reply);
+            break;
+        case AUD_CAP_FUNC_STOP:
+            Stop(capturer, reply);
+            break;
+        case AUD_CAP_FUNC_RELEASE:
+            WriteInt32(reply, static_cast<int32_t>(capturer->Release()));
+            break;
+        case AUD_CAP_FUNC_SET_SURFACE:
+            SetSurface(req, reply);
+            break;
+        case AUD_CAP_FUNC_GET_MIN_FRAME_COUNT:
+            GetMiniFrameCount(req, reply);
+            break;
+        case AUD_CAP_FUNC_SET_DEVICE_CHANGE_CALLBACK:
+            SetAudioCapturerServerCallback(capturer, req);
+            break;
+        default:
+            break;
+    }
+}
+
 void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo *reply)
 {
     if (funcId == AUD_CAP_FUNC_GET_MIN_FRAME_COUNT) {
@@ -332,22 +614,8 @@ void AudioCapturerServer::Dispatch(int32_t funcId, pid_t pid, IpcIo *req, IpcIo 
         case AUD_CAP_FUNC_GET_INFO:
             GetInfo(capturer, reply);
             break;
-        case AUD_CAP_FUNC_START:
-            Start(capturer, reply);
-            break;
-        case AUD_CAP_FUNC_STOP:
-            Stop(capturer, reply);
-            break;
-        case AUD_CAP_FUNC_RELEASE:
-            WriteInt32(reply, static_cast<int32_t>(capturer->Release()));
-            break;
-        case AUD_CAP_FUNC_SET_SURFACE:
-            SetSurface(req, reply);
-            break;
-        case AUD_CAP_FUNC_GET_MIN_FRAME_COUNT:
-            GetMiniFrameCount(req, reply);
-            break;
         default:
+            DispatchException(funcId, capturer, req, reply);
             break;
     }
 }
